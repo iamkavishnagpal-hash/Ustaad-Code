@@ -52,6 +52,9 @@
   "build": {
     "appId": "com.ustaadg.desktop",
     "productName": "Personal AI Workspace OS",
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/**/*",
       "package.json"

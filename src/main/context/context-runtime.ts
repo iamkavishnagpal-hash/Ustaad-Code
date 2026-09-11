@@ -5,6 +5,9 @@ import { ContextEvent } from './context-events';
 import { ActiveApplicationDetector } from './active-application';
 import { AudioManager } from '../audio/audio-manager';
 import { TranscriptionManager } from '../transcription/transcription-manager';
+import { ScreenContextSource } from './screen/screen-source';
+import { ScreenCaptureService } from './screen/screen-capture';
+import { WindowsOcrEngine } from './screen/ocr-engine';
 import { TranscriptSegment } from '../../shared/types';
 
 export interface ContextRuntimeOptions {
@@ -17,18 +20,29 @@ export class ContextRuntime extends EventEmitter {
   private activeSessionId: string | null = null;
   private activeWorkspaceId: string | null = null;
   private windowPollTimer: NodeJS.Timeout | null = null;
+  private screenSource: ScreenContextSource;
   private readonly pollIntervalMs: number;
 
   constructor(
     private audioManager: AudioManager,
     private transcriptionManager: TranscriptionManager,
     buffer?: ContextBuffer,
+    screenSourceOrOptions?: ScreenContextSource | ContextRuntimeOptions,
     options: ContextRuntimeOptions = {}
   ) {
     super();
     this.buffer = buffer || new ContextBuffer();
-    this.pollIntervalMs = options.activeWindowPollIntervalMs ?? 3000;
 
+    if (screenSourceOrOptions && 'start' in screenSourceOrOptions && typeof screenSourceOrOptions.start === 'function') {
+      this.screenSource = screenSourceOrOptions;
+    } else {
+      this.screenSource = new ScreenContextSource(new ScreenCaptureService(), new WindowsOcrEngine());
+      if (screenSourceOrOptions && !('start' in screenSourceOrOptions)) {
+        options = screenSourceOrOptions;
+      }
+    }
+
+    this.pollIntervalMs = options.activeWindowPollIntervalMs ?? 3000;
     this.setupListeners();
   }
 
@@ -78,6 +92,9 @@ export class ContextRuntime extends EventEmitter {
     // Initial probe of active application
     this.pollActiveWindow();
 
+    // Start screen source
+    await this.screenSource.start();
+
     // Start background window polling
     this.startWindowPolling();
 
@@ -96,6 +113,7 @@ export class ContextRuntime extends EventEmitter {
     if (!this.isRunning) return;
 
     this.stopWindowPolling();
+    await this.screenSource.stop();
 
     // Ensure audio ceases cleanly if active
     if (this.audioManager.isListening()) {
@@ -135,7 +153,7 @@ export class ContextRuntime extends EventEmitter {
       microphone: audioState.microphone && !audioState.muted,
       systemAudio: audioState.systemAudio,
       activeWindow: this.isRunning,
-      screen: false,
+      screen: this.screenSource.isActive(),
     };
 
     return this.buffer.toPayload(
@@ -190,6 +208,15 @@ export class ContextRuntime extends EventEmitter {
           },
           timestamp: Date.now(),
         });
+
+        // Trigger change-based visual screen context capture
+        this.screenSource.evaluateChange().then((screenSnap) => {
+          if (screenSnap) {
+            this.buffer.setScreenContext(screenSnap);
+            this.broadcastUpdatedPayload();
+          }
+        });
+
         this.broadcastUpdatedPayload();
       }
     } catch (err: any) {

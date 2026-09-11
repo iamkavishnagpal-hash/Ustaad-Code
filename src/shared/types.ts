@@ -91,6 +91,7 @@ export interface RuntimeStateSnapshot {
     timestamp: number;
     transcript: { text: string; startedAt: number; updatedAt: number; segmentCount: number };
     activeWindow?: { application?: string; title?: string; processId?: number };
+    screenContext?: { application?: string; title?: string; ocrText?: string };
     sources: { microphone: boolean; systemAudio: boolean; activeWindow: boolean; screen: boolean };
   };
   statusMessage: string;

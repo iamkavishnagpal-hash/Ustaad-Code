@@ -20,6 +20,21 @@ export const ContextPayloadSchema = z.object({
     })
     .optional(),
 
+  screenContext: z
+    .object({
+      application: z.string().optional(),
+      title: z.string().optional(),
+      ocrText: z.string().optional(),
+      dimensions: z
+        .object({
+          width: z.number(),
+          height: z.number(),
+        })
+        .optional(),
+      capturedAt: z.number().optional(),
+    })
+    .optional(),
+
   sources: z.object({
     microphone: z.boolean(),
     systemAudio: z.boolean(),

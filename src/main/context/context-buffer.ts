@@ -11,6 +11,13 @@ export interface BoundedBufferConfig {
 export class ContextBuffer {
   private segments: TranscriptSegment[] = [];
   private currentActiveWindow: ActiveWindowInfo | null = null;
+  private currentScreenContext: {
+    application?: string;
+    title?: string;
+    ocrText?: string;
+    dimensions?: { width: number; height: number };
+    capturedAt?: number;
+  } | null = null;
   private readonly maxSegments: number;
   private readonly maxChars: number;
   private readonly retentionMs: number;
@@ -26,6 +33,7 @@ export class ContextBuffer {
   public reset(sessionStartTime = Date.now()): void {
     this.segments = [];
     this.currentActiveWindow = null;
+    this.currentScreenContext = null;
     this.sessionStartTime = sessionStartTime;
     this.lastUpdateTime = sessionStartTime;
   }
@@ -48,6 +56,21 @@ export class ContextBuffer {
       this.lastUpdateTime = Date.now();
     }
     return changed;
+  }
+
+  public setScreenContext(snapshot: {
+    application?: string;
+    title?: string;
+    ocrText?: string;
+    dimensions?: { width: number; height: number };
+    capturedAt?: number;
+  }): void {
+    this.currentScreenContext = { ...snapshot };
+    this.lastUpdateTime = snapshot.capturedAt || Date.now();
+  }
+
+  public getScreenContext() {
+    return this.currentScreenContext ? { ...this.currentScreenContext } : null;
   }
 
   public getActiveWindow(): ActiveWindowInfo | null {
@@ -94,6 +117,7 @@ export class ContextBuffer {
             processId: this.currentActiveWindow.processId,
           }
         : undefined,
+      screenContext: this.currentScreenContext || undefined,
       sources,
     };
   }

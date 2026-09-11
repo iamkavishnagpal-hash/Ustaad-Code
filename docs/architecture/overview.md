@@ -101,6 +101,37 @@ The Workspace is the primary unit of execution. The product is **not** a chat wi
 4. **Context Assembly (`src/main/providers/context-assembler.ts`)**:
    - Combines workspace instructions, foreground application state, and recent speech transcripts into clean, structured prompts.
 
+## Phase 4: Screen & Vision Context Subsystem
+
+```text
+         Windows Active Window Detector (User32 Signal)
+                      │ (Trigger on Change)
+                      ▼
+         ScreenContextSource (`src/main/context/screen/screen-source.ts`)
+                      │
+                      ├──► ScreenCaptureService (desktopCapturer / bounded resolution)
+                      └──► WindowsOcrEngine (Visual text & heuristics extraction)
+                                    │
+                                    ▼
+                         ContextBuffer (`screenContext`)
+                                    │
+                                    ▼
+                         ContextPayload & Assembler
+                                    │
+                                    ▼
+                         AI Provider Gateway
+```
+
+### Screen Context Responsibilities
+1. **Screen Context Source (`src/main/context/screen/screen-source.ts`)**:
+   - Change-driven capture policy governed by foreground application changes and a conservative 5-second interval throttle.
+2. **Screen Capture Service (`src/main/context/screen/screen-capture.ts`)**:
+   - Captures primary display thumbnail buffers safely using bounded resolution to prevent RAM bloat.
+3. **Provider-Neutral OCR Engine (`src/main/context/screen/ocr-engine.ts`)**:
+   - Extracts structured visual text without vendor lock-in.
+4. **ContextPayload Integration**:
+   - Ingests `screenContext` (`application`, `title`, `ocrText`, `dimensions`) into `ContextPayload` for AI prompt augmentation.
+
 ## Security & IPC Boundaries
 - Renderer processes (`main` and `overlay`) run with `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
 - Renderer communicates with Node.js main process exclusively via typed IPC channels defined in `@shared/ipc`.
@@ -111,4 +142,5 @@ The Workspace is the primary unit of execution. The product is **not** a chat wi
 **Author**:
 **Kavish Nagpal**  
 *Senior Data Engineer & Systems Builder*
+
 

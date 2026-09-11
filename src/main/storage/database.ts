@@ -1,9 +1,11 @@
-import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
+import DatabaseConstructor from 'better-sqlite3';
+import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 
 export class SQLiteBridge {
   private dbPath: string;
+  private db: BetterSqlite3Database;
 
   constructor(customPath?: string) {
     if (customPath) {
@@ -24,57 +26,19 @@ export class SQLiteBridge {
       }
       this.dbPath = path.join(userDataPath, 'ustaadg.db');
     }
+
+    // Initialize native SQLite database connection
+    this.db = new DatabaseConstructor(this.dbPath);
+
+    // Enable Write-Ahead Logging (WAL) and foreign keys for high-performance concurrent reads/writes
+    this.db.pragma('journal_mode = WAL');
+    this.db.pragma('foreign_keys = ON');
+
     this.initSchema();
   }
 
   public getDatabasePath(): string {
     return this.dbPath;
-  }
-
-  private executeSql(sql: string, params: any[] = []): any {
-    const pythonScript = `
-import sys, json, sqlite3
-
-db_path = sys.argv[1]
-sql = sys.argv[2]
-params = json.loads(sys.argv[3]) if len(sys.argv) > 3 else []
-
-try:
-    con = sqlite3.connect(db_path)
-    con.row_factory = sqlite3.Row
-    cur = con.cursor()
-    cur.execute(sql, params)
-    
-    if sql.strip().upper().startswith("SELECT"):
-        rows = [dict(row) for row in cur.fetchall()]
-        print(json.dumps({"success": True, "data": rows}))
-    else:
-        con.commit()
-        print(json.dumps({"success": True, "changes": cur.rowcount, "lastrowid": cur.lastrowid}))
-    con.close()
-except Exception as e:
-    print(json.dumps({"success": False, "error": str(e)}))
-    sys.exit(1)
-`;
-
-    const res = spawnSync('python', ['-c', pythonScript, this.dbPath, sql, JSON.stringify(params)], {
-      encoding: 'utf-8',
-      windowsHide: true,
-    });
-
-    if (res.error) {
-      throw new Error(`SQLite execution failed: ${res.error.message}`);
-    }
-
-    try {
-      const output = JSON.parse(res.stdout.trim());
-      if (!output.success) {
-        throw new Error(`SQLite query error: ${output.error}`);
-      }
-      return output;
-    } catch (err: any) {
-      throw new Error(`Failed to parse SQLite response: ${res.stdout} / ${res.stderr} (${err.message})`);
-    }
   }
 
   private initSchema(): void {
@@ -121,38 +85,32 @@ except Exception as e:
       CREATE INDEX IF NOT EXISTS idx_workflows_workspace ON workflows(workspace_id);
     `;
 
-    const pythonScript = `
-import sys, sqlite3
-db_path = sys.argv[1]
-schema = sys.argv[2]
-con = sqlite3.connect(db_path)
-con.executescript(schema)
-con.close()
-print("SCHEMA_INITIALIZED")
-`;
-
-    const res = spawnSync('python', ['-c', pythonScript, this.dbPath, schemaSql], {
-      encoding: 'utf-8',
-      windowsHide: true,
-    });
-
-    if (res.error || !res.stdout.includes('SCHEMA_INITIALIZED')) {
-      throw new Error(`Failed to initialize SQLite schema: ${res.stderr || res.stdout}`);
-    }
+    this.db.exec(schemaSql);
   }
 
   public query<T = any>(sql: string, params: any[] = []): T[] {
-    const res = this.executeSql(sql, params);
-    return res.data || [];
+    const stmt = this.db.prepare(sql);
+    return stmt.all(...params) as T[];
   }
 
   public queryOne<T = any>(sql: string, params: any[] = []): T | null {
-    const rows = this.query<T>(sql, params);
-    return rows.length > 0 ? rows[0] : null;
+    const stmt = this.db.prepare(sql);
+    const row = stmt.get(...params);
+    return (row as T) || null;
   }
 
   public run(sql: string, params: any[] = []): { changes: number; lastrowid: number } {
-    const res = this.executeSql(sql, params);
-    return { changes: res.changes || 0, lastrowid: res.lastrowid || 0 };
+    const stmt = this.db.prepare(sql);
+    const res = stmt.run(...params);
+    return {
+      changes: res.changes,
+      lastrowid: Number(res.lastInsertRowid),
+    };
+  }
+
+  public close(): void {
+    if (this.db && this.db.open) {
+      this.db.close();
+    }
   }
 }

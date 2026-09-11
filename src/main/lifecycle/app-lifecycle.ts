@@ -88,6 +88,11 @@ export class AppLifecycleManager {
       // 5. Destroy system tray
       this.trayManager.destroy();
 
+      // 6. Close SQLite database connection
+      if (this.db && typeof this.db.close === 'function') {
+        this.db.close();
+      }
+
       Logger.info('application_shutdown_completed');
       this.setState('EXITED');
     } catch (err: any) {

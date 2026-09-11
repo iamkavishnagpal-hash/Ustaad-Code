@@ -20,7 +20,7 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: Setup Python Runtime (for SQLite Bridge)
+      - name: Setup Python Runtime (for Native Builds / node-gyp)
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'

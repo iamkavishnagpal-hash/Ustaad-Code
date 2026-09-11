@@ -137,6 +137,7 @@ describe('Phase 7 — Production Hardening & Application Lifecycle', () => {
         expect(mockHotkeyManager.unregisterAll).toHaveBeenCalled();
         expect(mockWindowManager.overlayManager.close).toHaveBeenCalled();
         expect(mockTrayManager.destroy).toHaveBeenCalled();
+        expect(mockDb.close).toHaveBeenCalled();
         expect(lifecycle.getState()).toBe('EXITED');
       } finally {
         process.exit = originalExit;

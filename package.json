@@ -8,8 +8,8 @@
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "vite build",
     "build": "npm run build:main && npm run build:renderer",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node scripts/run-tests.js run",
+    "test:watch": "node scripts/run-tests.js",
     "package": "npm run build && electron-builder"
   },
   "keywords": [

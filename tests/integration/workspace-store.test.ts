@@ -21,8 +21,13 @@ describe('WorkspaceStore and SessionStore SQLite Integration', () => {
   });
 
   afterEach(() => {
+    if (db) {
+      db.close();
+    }
     if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
+      try {
+        fs.unlinkSync(testDbPath);
+      } catch {}
     }
   });
 

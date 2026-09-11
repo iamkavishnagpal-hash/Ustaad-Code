@@ -118,6 +118,9 @@ describe('WorkspaceRuntime Integration', () => {
   });
 
   afterEach(() => {
+    if (db) {
+      db.close();
+    }
     if (fs.existsSync(testDbPath)) {
       try {
         fs.unlinkSync(testDbPath);

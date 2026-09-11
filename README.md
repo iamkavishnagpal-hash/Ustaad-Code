@@ -73,7 +73,6 @@ Overlay HUD (Sleek, transparent, always-on-top desktop status bar)
 
 * Windows 10 or Windows 11 (64-bit)
 * Node.js v18+ (tested on v24)
-* Python 3.10+ (for SQLite runtime integration)
 
 ### Installation & Development
 

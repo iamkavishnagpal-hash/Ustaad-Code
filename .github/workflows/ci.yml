@@ -1,0 +1,38 @@
+name: Desktop Runtime CI & Quality Gate
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  verify:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Python Runtime (for SQLite Bridge)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Schema & State Machine Unit Tests
+        run: npm test
+
+      - name: Typecheck Main and Renderer
+        run: npm run build
+
+      - name: Execute End-to-End Acceptance Test
+        run: npx electron scripts/acceptance-test.js

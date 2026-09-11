@@ -126,3 +126,16 @@ Overlay HUD (Sleek, transparent, always-on-top desktop status bar)
 * **Phase 4**: Screen & Context Engine (Selective window capture, active application detection)
 * **Phase 5**: Workflow Builder & Permission-Checked Action Engine
 * **Phase 6**: IT Workflows & Tooling Integrations (VS Code, Git, Terminal)
+
+---
+
+## Engineering Standards
+
+- **State Machine Integrity**: Deterministic sequential state transitions (`IDLE` → `ACTIVATING` → `OPENING_SOURCE` → `VERIFYING` → `READY`).
+- **Zero Hallucination / No Mock UX**: Telemetry reports actual OS window display affinity and real reachability tests.
+- **ACID Persistence**: Local storage runs in SQLite WAL mode (`journal_mode=WAL`) preventing lock contention between background orchestrators and foreground UI threads.
+
+---
+
+**Kavish Nagpal**  
+*Senior Data Engineer*

@@ -31,6 +31,16 @@ export const IPC_CHANNELS = {
   LLM_TEST_CONNECTION: 'llm:test-connection',
   LLM_REQUEST_AI: 'llm:request-ai',
 
+  // Workflow & Action Runtime (Phase 5)
+  WORKFLOW_LIST: 'workflow:list',
+  WORKFLOW_GET: 'workflow:get',
+  WORKFLOW_CREATE: 'workflow:create',
+  WORKFLOW_UPDATE: 'workflow:update',
+  WORKFLOW_DELETE: 'workflow:delete',
+  WORKFLOW_RUN: 'workflow:run',
+  WORKFLOW_CANCEL: 'workflow:cancel',
+  WORKFLOW_GET_AUDIT: 'workflow:get-audit',
+
   // System windows
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_CLOSE: 'window:close',
@@ -48,6 +58,14 @@ export const IPC_CHANNELS = {
   EVENT_LLM_CHUNK: 'event:llm-chunk',
   EVENT_LLM_COMPLETED: 'event:llm-completed',
   EVENT_LLM_ERROR: 'event:llm-error',
+
+  // Workflow Events
+  EVENT_WORKFLOW_STARTED: 'event:workflow-started',
+  EVENT_WORKFLOW_STEP_STARTED: 'event:workflow-step-started',
+  EVENT_WORKFLOW_STEP_COMPLETED: 'event:workflow-step-completed',
+  EVENT_WORKFLOW_COMPLETED: 'event:workflow-completed',
+  EVENT_WORKFLOW_FAILED: 'event:workflow-failed',
+  EVENT_WORKFLOW_CANCELLED: 'event:workflow-cancelled',
 } as const;
 
 export type IpcChannels = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS];

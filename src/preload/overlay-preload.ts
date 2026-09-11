@@ -62,6 +62,44 @@ export const overlayApi = {
     ipcRenderer.on(IPC_CHANNELS.EVENT_LLM_ERROR, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_LLM_ERROR, handler);
   },
+
+  // Workflow Actions & Events (Phase 5)
+  runWorkflow: (workflowId: string, options?: any): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_RUN, { workflowId, options });
+  },
+  cancelWorkflow: (workflowId?: string): Promise<{ success: boolean }> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_CANCEL, workflowId);
+  },
+  onWorkflowStarted: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_STARTED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_STARTED, handler);
+  },
+  onWorkflowStepStarted: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_STEP_STARTED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_STEP_STARTED, handler);
+  },
+  onWorkflowStepCompleted: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_STEP_COMPLETED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_STEP_COMPLETED, handler);
+  },
+  onWorkflowCompleted: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_COMPLETED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_COMPLETED, handler);
+  },
+  onWorkflowFailed: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_FAILED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_FAILED, handler);
+  },
+  onWorkflowCancelled: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_CANCELLED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_CANCELLED, handler);
+  },
 };
 
 contextBridge.exposeInMainWorld('overlayApi', overlayApi);

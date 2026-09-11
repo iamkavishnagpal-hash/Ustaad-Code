@@ -132,6 +132,44 @@ The Workspace is the primary unit of execution. The product is **not** a chat wi
 4. **ContextPayload Integration**:
    - Ingests `screenContext` (`application`, `title`, `ocrText`, `dimensions`) into `ContextPayload` for AI prompt augmentation.
 
+## Phase 5: Workflow & Action Runtime Subsystem
+
+```text
+               Global Hotkey / Manual Overlay Action
+                                │
+                                ▼
+                   WorkflowRuntime (`src/main/workflows/workflow-runtime.ts`)
+                                │
+                                ├──► Condition Evaluator (app, title, workspace state)
+                                │       │ (Fails safely if condition false)
+                                │       ▼
+                                ├──► Sequential Step Pipeline
+                                │       │
+                                │       ├──► ActionPolicy (SAFE, USER_CONFIRMATION, RESTRICTED)
+                                │       ├──► ActionRegistry (Handler lookup & validation)
+                                │       └──► Timeout Guard & AbortController Signal
+                                │
+                                ├──► Action Execution (OPEN_URL, OPEN_APPLICATION, SHOW_OVERLAY,
+                                │                      START_CONTEXT, STOP_CONTEXT, REQUEST_AI_RESPONSE)
+                                │
+                                ├──► Lightweight Audit Log (SQLite `workflows` table)
+                                │
+                                ▼
+                       Desktop HUD Overlay (Live progress banner & cancel button)
+```
+
+### Workflow Subsystem Responsibilities
+1. **Workflow Runtime (`src/main/workflows/workflow-runtime.ts`)**:
+   - Manages workflow execution lifecycle (`IDLE`, `RUNNING`, `WAITING`, `COMPLETED`, `FAILED`, `CANCELLED`).
+   - Supports per-step timeouts, cooperative cancellation tokens, and sequential step progression.
+2. **Condition Evaluator**:
+   - Evaluates active desktop conditions (`active-application`, `window-title`, `workspace-state`) using declarative operators (`equals`, `contains`, `not-equals`).
+3. **Action Registry & Policy (`src/main/workflows/action-registry.ts`, `action-policy.ts`)**:
+   - Registry for known, safe actions.
+   - Enforces strict permission levels: `SAFE` allowed, `USER_CONFIRMATION` requiring elevated prompt, and `RESTRICTED` (such as arbitrary shell commands) denied by policy.
+4. **Overlay HUD Workflow Banner**:
+   - Displays real-time step execution (`Step X of Y: ACTION`), success banners, failure notifications, and a direct cancellation action.
+
 ## Security & IPC Boundaries
 - Renderer processes (`main` and `overlay`) run with `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
 - Renderer communicates with Node.js main process exclusively via typed IPC channels defined in `@shared/ipc`.
@@ -142,5 +180,6 @@ The Workspace is the primary unit of execution. The product is **not** a chat wi
 **Author**:
 **Kavish Nagpal**  
 *Senior Data Engineer & Systems Builder*
+
 
 

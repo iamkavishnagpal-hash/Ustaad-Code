@@ -17,6 +17,10 @@ import { ProviderRegistry } from './providers/provider-registry';
 import { CredentialStore } from './storage/credential-store';
 import { ProviderGateway } from './providers/provider-gateway';
 import { registerIpcHandlers } from './ipc/handlers';
+import { WorkflowStore } from './workflows/workflow-store';
+import { ActionRegistry } from './workflows/action-registry';
+import { WorkflowRuntime as DesktopWorkflowRuntime } from './workflows/workflow-runtime';
+import { WorkflowEventsBus } from './workflows/workflow-events';
 
 // Enforce single instance lock on Windows
 const gotTheLock = app.requestSingleInstanceLock();
@@ -27,12 +31,14 @@ if (!gotTheLock) {
 let windowManager: WindowManager | null = null;
 let hotkeyManager: HotkeyManager | null = null;
 let runtime: WorkspaceRuntime | null = null;
+let workflowRuntime: DesktopWorkflowRuntime | null = null;
 
 async function bootstrap(): Promise<void> {
   // 1. Initialize SQLite Database
   const db = new SQLiteBridge();
   const workspaceStore = new WorkspaceStore(db);
   const sessionStore = new SessionStore(db);
+  const workflowStore = new WorkflowStore(db);
 
   // 2. Initialize Services & Managers
   const workspaceService = new WorkspaceService(workspaceStore);
@@ -42,6 +48,15 @@ async function bootstrap(): Promise<void> {
   const privacyManager = new PrivacyManager();
   hotkeyManager = new HotkeyManager();
   const eventsBus = new RuntimeEventsBus();
+  const workflowEventsBus = new WorkflowEventsBus();
+
+  // Pipe workflow events into RuntimeEventsBus for client windows
+  workflowEventsBus.on('workflow:started', (p) => eventsBus.notifyWorkflowStarted(p));
+  workflowEventsBus.on('workflow:step-started', (p) => eventsBus.notifyWorkflowStepStarted(p));
+  workflowEventsBus.on('workflow:step-completed', (p) => eventsBus.notifyWorkflowStepCompleted(p));
+  workflowEventsBus.on('workflow:completed', (p) => eventsBus.notifyWorkflowCompleted(p));
+  workflowEventsBus.on('workflow:failed', (p) => eventsBus.notifyWorkflowFailed(p));
+  workflowEventsBus.on('workflow:cancelled', (p) => eventsBus.notifyWorkflowCancelled(p));
 
   // Phase 2 Live Context Services
   const audioManager = new AudioManager();
@@ -70,15 +85,26 @@ async function bootstrap(): Promise<void> {
     providerGateway
   );
 
+  // Phase 5 Workflow & Action Runtime
+  const actionRegistry = new ActionRegistry(runtime);
+  workflowRuntime = new DesktopWorkflowRuntime(
+    workflowStore,
+    actionRegistry,
+    runtime,
+    hotkeyManager,
+    workflowEventsBus
+  );
+
   // 4. Register IPC endpoints
-  registerIpcHandlers(workspaceService, runtime, hotkeyManager);
+  registerIpcHandlers(workspaceService, runtime, hotkeyManager, workflowStore, workflowRuntime);
 
   // 5. Create Main Settings Window
   const mainWindow = windowManager.createMainWindow();
   eventsBus.registerWindow(mainWindow);
 
-  // 6. Bind all registered workspaces hotkeys
+  // 6. Bind all registered workspaces and workflows hotkeys
   runtime.initializeHotkeys();
+  workflowRuntime.initializeHotkeys();
 
   // Handle focus when second instance is requested
   app.on('second-instance', () => {

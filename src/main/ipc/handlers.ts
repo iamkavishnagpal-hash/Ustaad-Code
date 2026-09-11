@@ -4,11 +4,17 @@ import { WorkspaceService } from '../workspaces/workspace-service';
 import { WorkspaceRuntime } from '../runtime/workspace-runtime';
 import { HotkeyManager } from '../hotkeys/hotkey-manager';
 import { WorkspaceInputSchema } from '../../shared/schemas';
+import { WorkflowStore } from '../workflows/workflow-store';
+import { WorkflowRuntime as DesktopWorkflowRuntime } from '../workflows/workflow-runtime';
+import { WorkflowValidator } from '../workflows/workflow-validator';
+import { Workflow } from '../workflows/workflow-types';
 
 export function registerIpcHandlers(
   workspaceService: WorkspaceService,
   runtime: WorkspaceRuntime,
-  hotkeyManager: HotkeyManager
+  hotkeyManager: HotkeyManager,
+  workflowStore?: WorkflowStore,
+  workflowRuntime?: DesktopWorkflowRuntime
 ): void {
   // 1. Workspace CRUD
   ipcMain.handle(IPC_CHANNELS.WORKSPACE_LIST, async () => {
@@ -121,7 +127,69 @@ export function registerIpcHandlers(
     return await runtime.requestAiResponse(prompt, providerId);
   });
 
-  // 4. Window control
+  // 6. Workflow & Action Runtime (Phase 5)
+  if (workflowStore && workflowRuntime) {
+    ipcMain.handle(IPC_CHANNELS.WORKFLOW_LIST, async (_event, workspaceId?: string) => {
+      return workspaceId ? workflowStore.listByWorkspace(workspaceId) : workflowStore.listAll();
+    });
+
+    ipcMain.handle(IPC_CHANNELS.WORKFLOW_GET, async (_event, id: string) => {
+      return workflowStore.getById(id);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.WORKFLOW_CREATE, async (_event, input: any) => {
+      const validation = WorkflowValidator.validateInput(input);
+      if (!validation.valid) {
+        throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+      }
+      const workflow: Workflow = {
+        ...validation.data!,
+        id: `wf_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      const created = workflowStore.create(workflow);
+      if (created.enabled && created.trigger.type === 'hotkey') {
+        workflowRuntime.bindWorkflowHotkey(created);
+      }
+      return created;
+    });
+
+    ipcMain.handle(IPC_CHANNELS.WORKFLOW_UPDATE, async (_event, { id, input }: { id: string; input: any }) => {
+      const existing = workflowStore.getById(id);
+      if (existing?.trigger.type === 'hotkey' && existing.trigger.hotkey) {
+        workflowRuntime.unbindWorkflowHotkey(existing.trigger.hotkey);
+      }
+      const updated = workflowStore.update(id, input);
+      if (updated.enabled && updated.trigger.type === 'hotkey' && updated.trigger.hotkey) {
+        workflowRuntime.bindWorkflowHotkey(updated);
+      }
+      return updated;
+    });
+
+    ipcMain.handle(IPC_CHANNELS.WORKFLOW_DELETE, async (_event, id: string) => {
+      const existing = workflowStore.getById(id);
+      if (existing?.trigger.type === 'hotkey' && existing.trigger.hotkey) {
+        workflowRuntime.unbindWorkflowHotkey(existing.trigger.hotkey);
+      }
+      return workflowStore.delete(id);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.WORKFLOW_RUN, async (_event, { workflowId, options }: { workflowId: string; options?: any }) => {
+      return await workflowRuntime.executeWorkflow(workflowId, options);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.WORKFLOW_CANCEL, async (_event, workflowId?: string) => {
+      workflowRuntime.cancelWorkflow(workflowId);
+      return { success: true };
+    });
+
+    ipcMain.handle(IPC_CHANNELS.WORKFLOW_GET_AUDIT, async () => {
+      return workflowRuntime.getAuditTrail();
+    });
+  }
+
+  // 7. Window control
   ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) win.minimize();

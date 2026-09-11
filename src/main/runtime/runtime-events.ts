@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { RuntimeStateSnapshot, RuntimeStatus, VerificationReport, Workspace } from '../../shared/types';
+import { RuntimeStateSnapshot, VerificationReport } from '../../shared/types';
 import { BrowserWindow } from 'electron';
 import { IPC_CHANNELS } from '../../shared/events';
 
@@ -99,6 +99,61 @@ export class RuntimeEventsBus extends EventEmitter {
     for (const win of this.activeWindows) {
       if (!win.isDestroyed()) {
         win.webContents.send(IPC_CHANNELS.EVENT_LLM_ERROR, errorData);
+      }
+    }
+  }
+
+  // Workflow notifications (Phase 5)
+  public notifyWorkflowStarted(payload: any): void {
+    this.emit('workflow:started', payload);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_WORKFLOW_STARTED, payload);
+      }
+    }
+  }
+
+  public notifyWorkflowStepStarted(payload: any): void {
+    this.emit('workflow:step-started', payload);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_WORKFLOW_STEP_STARTED, payload);
+      }
+    }
+  }
+
+  public notifyWorkflowStepCompleted(payload: any): void {
+    this.emit('workflow:step-completed', payload);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_WORKFLOW_STEP_COMPLETED, payload);
+      }
+    }
+  }
+
+  public notifyWorkflowCompleted(payload: any): void {
+    this.emit('workflow:completed', payload);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_WORKFLOW_COMPLETED, payload);
+      }
+    }
+  }
+
+  public notifyWorkflowFailed(payload: any): void {
+    this.emit('workflow:failed', payload);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_WORKFLOW_FAILED, payload);
+      }
+    }
+  }
+
+  public notifyWorkflowCancelled(payload: any): void {
+    this.emit('workflow:cancelled', payload);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_WORKFLOW_CANCELLED, payload);
       }
     }
   }

@@ -58,6 +58,32 @@ export const workspaceApi = {
     return ipcRenderer.invoke(IPC_CHANNELS.LLM_TEST_CONNECTION, { providerId, config });
   },
 
+  // Workflow Management (Phase 5)
+  listWorkflows: (workspaceId?: string): Promise<any[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_LIST, workspaceId);
+  },
+  getWorkflow: (id: string): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_GET, id);
+  },
+  createWorkflow: (input: any): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_CREATE, input);
+  },
+  updateWorkflow: (id: string, input: any): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_UPDATE, { id, input });
+  },
+  deleteWorkflow: (id: string): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_DELETE, id);
+  },
+  runWorkflow: (workflowId: string, options?: any): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_RUN, { workflowId, options });
+  },
+  cancelWorkflow: (workflowId?: string): Promise<{ success: boolean }> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_CANCEL, workflowId);
+  },
+  getWorkflowAudit: (): Promise<any[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_GET_AUDIT);
+  },
+
   // Event subscriptions
   onStateChanged: (callback: (snapshot: RuntimeStateSnapshot) => void) => {
     const handler = (_event: any, snapshot: RuntimeStateSnapshot) => callback(snapshot);
@@ -68,6 +94,36 @@ export const workspaceApi = {
     const handler = (_event: any, report: VerificationReport) => callback(report);
     ipcRenderer.on(IPC_CHANNELS.EVENT_VERIFICATION_UPDATED, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_VERIFICATION_UPDATED, handler);
+  },
+  onWorkflowStarted: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_STARTED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_STARTED, handler);
+  },
+  onWorkflowStepStarted: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_STEP_STARTED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_STEP_STARTED, handler);
+  },
+  onWorkflowStepCompleted: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_STEP_COMPLETED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_STEP_COMPLETED, handler);
+  },
+  onWorkflowCompleted: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_COMPLETED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_COMPLETED, handler);
+  },
+  onWorkflowFailed: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_FAILED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_FAILED, handler);
+  },
+  onWorkflowCancelled: (callback: (payload: any) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_WORKFLOW_CANCELLED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_WORKFLOW_CANCELLED, handler);
   },
 };
 

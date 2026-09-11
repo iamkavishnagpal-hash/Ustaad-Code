@@ -1,6 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { RuntimeStateSnapshot, VerificationReport } from '../../shared/types';
-import { Shield, Power, CheckCircle, AlertTriangle, Layers, Mic, MicOff, VolumeX, MessageSquare, Sparkles, Loader2 } from 'lucide-react';
+import {
+  Shield,
+  Power,
+  Layers,
+  Mic,
+  MicOff,
+  VolumeX,
+  MessageSquare,
+  Sparkles,
+  Loader2,
+  Play,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+} from 'lucide-react';
+
+interface WorkflowExecutionState {
+  workflowId: string;
+  workflowName: string;
+  status: 'IDLE' | 'RUNNING' | 'WAITING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  stepIndex?: number;
+  totalSteps?: number;
+  stepAction?: string;
+  message?: string;
+  error?: string;
+}
 
 export const OverlayApp: React.FC = () => {
   const [runtimeState, setRuntimeState] = useState<RuntimeStateSnapshot | null>(null);
@@ -9,6 +34,7 @@ export const OverlayApp: React.FC = () => {
   const [audioLoading, setAudioLoading] = useState(false);
   const [aiStreaming, setAiStreaming] = useState(false);
   const [aiResponse, setAiResponse] = useState<string>('');
+  const [workflowState, setWorkflowState] = useState<WorkflowExecutionState | null>(null);
 
   const api = window.overlayApi;
 
@@ -59,6 +85,66 @@ export const OverlayApp: React.FC = () => {
       setAiResponse(`[AI Error] ${error}`);
     });
 
+    // Phase 5: Workflow Execution Event Listeners
+    const unsubWfStart = api.onWorkflowStarted?.((data) => {
+      setWorkflowState({
+        workflowId: data.workflowId,
+        workflowName: data.workflowName,
+        status: 'RUNNING',
+        totalSteps: data.totalSteps,
+      });
+    });
+
+    const unsubWfStepStart = api.onWorkflowStepStarted?.((data) => {
+      setWorkflowState((prev) => ({
+        workflowId: data.workflowId,
+        workflowName: data.workflowName,
+        status: 'RUNNING',
+        stepIndex: data.stepIndex,
+        totalSteps: data.totalSteps,
+        stepAction: data.stepAction,
+      }));
+    });
+
+    const unsubWfStepDone = api.onWorkflowStepCompleted?.((data) => {
+      setWorkflowState((prev) => ({
+        ...prev!,
+        stepIndex: data.stepIndex,
+        totalSteps: data.totalSteps,
+        stepAction: data.stepAction,
+        message: data.message,
+      }));
+    });
+
+    const unsubWfComplete = api.onWorkflowCompleted?.((data) => {
+      setWorkflowState((prev) => ({
+        workflowId: data.workflowId,
+        workflowName: data.workflowName,
+        status: 'COMPLETED',
+        totalSteps: data.totalSteps,
+      }));
+      setTimeout(() => setWorkflowState(null), 4000);
+    });
+
+    const unsubWfFailed = api.onWorkflowFailed?.((data) => {
+      setWorkflowState({
+        workflowId: data.workflowId,
+        workflowName: data.workflowName,
+        status: 'FAILED',
+        error: data.error,
+      });
+      setTimeout(() => setWorkflowState(null), 5000);
+    });
+
+    const unsubWfCancel = api.onWorkflowCancelled?.((data) => {
+      setWorkflowState({
+        workflowId: data.workflowId,
+        workflowName: data.workflowName,
+        status: 'CANCELLED',
+      });
+      setTimeout(() => setWorkflowState(null), 3000);
+    });
+
     return () => {
       unsubState();
       unsubVerify();
@@ -67,6 +153,12 @@ export const OverlayApp: React.FC = () => {
       if (unsubLlmChunk) unsubLlmChunk();
       if (unsubLlmComplete) unsubLlmComplete();
       if (unsubLlmError) unsubLlmError();
+      if (unsubWfStart) unsubWfStart();
+      if (unsubWfStepStart) unsubWfStepStart();
+      if (unsubWfStepDone) unsubWfStepDone();
+      if (unsubWfComplete) unsubWfComplete();
+      if (unsubWfFailed) unsubWfFailed();
+      if (unsubWfCancel) unsubWfCancel();
     };
   }, []);
 
@@ -160,8 +252,8 @@ export const OverlayApp: React.FC = () => {
 
   return (
     <div className="w-full h-full p-2">
-      <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-surfaceBorder rounded-xl shadow-2xl p-3 flex flex-col justify-between text-textPrimary min-h-[160px] max-h-[220px]">
-        {/* Top bar with drag handle and close control */}
+      <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-surfaceBorder rounded-xl shadow-2xl p-3 flex flex-col justify-between text-textPrimary min-h-[165px] max-h-[235px]">
+        {/* Top bar with drag handle and controls */}
         <div className="flex items-center justify-between drag-region cursor-move">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded bg-accent/20 border border-accent/40 flex items-center justify-center text-accent">
@@ -176,7 +268,7 @@ export const OverlayApp: React.FC = () => {
             {getStatusBadge()}
             <button
               onClick={handleAskAi}
-              disabled={aiStreaming || status !== 'READY' && status !== 'CONTEXT_READY' && status !== 'CAPTURING'}
+              disabled={aiStreaming || (status !== 'READY' && status !== 'CONTEXT_READY' && status !== 'CAPTURING')}
               className="p-1 rounded text-xs transition-colors flex items-center gap-1 px-2 border bg-indigo-500/15 border-indigo-500/40 text-indigo-400 hover:bg-indigo-500/25 disabled:opacity-50"
               title="Request AI Context Synthesis (Phase 3)"
             >
@@ -217,8 +309,48 @@ export const OverlayApp: React.FC = () => {
           </div>
         </div>
 
-        {/* AI Streaming Response Viewport (when active or recently answered) */}
-        {aiResponse && (
+        {/* Phase 5 Workflow HUD Banner (When a workflow is actively executing, completed, or failed) */}
+        {workflowState && (
+          <div
+            className={`my-1 px-2.5 py-1.5 rounded-lg border text-xs flex items-center justify-between transition-all ${
+              workflowState.status === 'RUNNING'
+                ? 'bg-cyan-950/50 border-cyan-500/40 text-cyan-200'
+                : workflowState.status === 'COMPLETED'
+                ? 'bg-emerald-950/50 border-emerald-500/40 text-emerald-200'
+                : 'bg-red-950/50 border-red-500/40 text-red-200'
+            }`}
+          >
+            <div className="flex items-center gap-2 truncate">
+              {workflowState.status === 'RUNNING' && <Loader2 size={13} className="animate-spin text-cyan-400 flex-shrink-0" />}
+              {workflowState.status === 'COMPLETED' && <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0" />}
+              {workflowState.status === 'FAILED' && <XCircle size={13} className="text-red-400 flex-shrink-0" />}
+              <div className="truncate">
+                <span className="font-semibold uppercase tracking-wider text-[10px] block opacity-80">
+                  WORKFLOW {workflowState.status}: {workflowState.workflowName}
+                </span>
+                <span className="text-[11px] truncate block">
+                  {workflowState.status === 'RUNNING' &&
+                    `Step ${workflowState.stepIndex || 1} of ${workflowState.totalSteps || 1}: ${
+                      workflowState.stepAction || 'Processing...'
+                    }`}
+                  {workflowState.status === 'COMPLETED' && 'All steps executed successfully.'}
+                  {workflowState.status === 'FAILED' && (workflowState.error || 'Execution failed')}
+                </span>
+              </div>
+            </div>
+            {workflowState.status === 'RUNNING' && (
+              <button
+                onClick={() => api?.cancelWorkflow(workflowState.workflowId)}
+                className="text-[10px] text-cyan-300 hover:text-white px-1.5 py-0.5 border border-cyan-500/40 rounded bg-cyan-900/40"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* AI Streaming Response Viewport (when active or recently answered and no active workflow) */}
+        {!workflowState && aiResponse && (
           <div className="my-1 p-2 bg-[#121829] rounded-lg border border-indigo-500/30 text-xs max-h-[70px] overflow-y-auto font-mono text-indigo-200">
             <div className="flex items-center gap-1 text-[10px] text-indigo-400 font-semibold mb-1">
               <Sparkles size={11} /> AI RESPONSE:
@@ -231,7 +363,7 @@ export const OverlayApp: React.FC = () => {
         )}
 
         {/* Rolling Transcript Context Preview */}
-        {!aiResponse && (
+        {!workflowState && !aiResponse && (
           <div className="my-1 px-2.5 py-1.5 bg-[#0E1422] rounded-lg border border-surfaceBorder/60 flex items-center gap-2 text-xs min-h-[34px]">
             <MessageSquare size={13} className="text-accent flex-shrink-0" />
             <p className="text-textSecondary text-[11px] truncate italic">

@@ -3,14 +3,17 @@ import { Workspace, WorkspaceInput, RuntimeStateSnapshot } from '../../shared/ty
 import { WorkspaceList } from './components/WorkspaceList';
 import { WorkspaceEditorModal } from './components/WorkspaceEditorModal';
 import { ProviderSettingsModal } from './components/ProviderSettingsModal';
+import { WorkflowEditorModal } from './components/WorkflowEditorModal';
 import { Button } from './components/Button';
-import { Plus, Shield, Layers, Power, RefreshCw, Cpu } from 'lucide-react';
+import { Plus, Shield, Layers, Power, RefreshCw, Cpu, Workflow as WorkflowIcon } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
+  const [isWorkflowModalOpen, setIsWorkflowModalOpen] = useState(false);
+  const [selectedWorkspaceForWorkflow, setSelectedWorkspaceForWorkflow] = useState<Workspace | null>(null);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
   const [runtimeState, setRuntimeState] = useState<RuntimeStateSnapshot | null>(null);
 
@@ -69,6 +72,12 @@ export const App: React.FC = () => {
     await api.stopRuntime();
   };
 
+  const handleSaveWorkflow = async (workflowPayload: any) => {
+    if (!api || !api.createWorkflow) return;
+    await api.createWorkflow(workflowPayload);
+    await loadWorkspaces();
+  };
+
   return (
     <div className="min-h-screen bg-background text-textPrimary flex flex-col">
       {/* Top Windows Titlebar / Header */}
@@ -79,7 +88,7 @@ export const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-sm font-bold tracking-tight">Personal AI Workspace OS</h1>
-            <p className="text-[11px] text-textMuted -mt-0.5">Desktop Runtime Layer</p>
+            <p className="text-[11px] text-textMuted -mt-0.5">Desktop Runtime Layer · Workflow Engine</p>
           </div>
         </div>
 
@@ -99,23 +108,26 @@ export const App: React.FC = () => {
                 size="sm"
                 icon={Power}
                 onClick={handleStopRuntime}
-                className="text-danger hover:bg-danger/10 px-2 py-1"
+                className="text-textMuted hover:text-danger hover:bg-danger/10 p-1 h-auto"
+                title="Deactivate Runtime"
               >
                 Stop
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 bg-[#0E1422] px-3 py-1 rounded-md border border-surfaceBorder text-xs text-textMuted">
+            <div className="flex items-center gap-2 text-xs text-textMuted">
               <span className="w-2 h-2 rounded-full bg-slate-500" />
-              Runtime IDLE
+              Runtime Idle
             </div>
           )}
 
+          {/* AI Providers Management Modal Button */}
           <Button
-            variant="secondary"
+            variant="ghost"
             size="sm"
             icon={Cpu}
             onClick={() => setIsProviderModalOpen(true)}
+            className="text-textSecondary hover:text-textPrimary border border-surfaceBorder"
           >
             AI Providers
           </Button>
@@ -140,7 +152,7 @@ export const App: React.FC = () => {
           <div>
             <h2 className="text-lg font-semibold text-textPrimary">Saved AI Workspaces</h2>
             <p className="text-xs text-textSecondary mt-0.5">
-              Press any assigned hotkey anywhere in Windows to activate the source and overlay HUD.
+              Press any assigned hotkey anywhere in Windows to activate the source, live context, and desktop workflows.
             </p>
           </div>
           <button
@@ -163,6 +175,10 @@ export const App: React.FC = () => {
               setIsModalOpen(true);
             }}
             onDelete={handleDeleteWorkspace}
+            onManageWorkflows={(ws) => {
+              setSelectedWorkspaceForWorkflow(ws);
+              setIsWorkflowModalOpen(true);
+            }}
           />
         )}
       </main>
@@ -170,7 +186,7 @@ export const App: React.FC = () => {
       {/* Privacy Notice Banner */}
       <footer className="border-t border-surfaceBorder/60 py-3 px-6 text-center text-[11px] text-textMuted bg-[#0E1422]/50 flex items-center justify-center gap-2">
         <Shield size={13} className="text-slate-400" />
-        <span>Capture protection active for supported Windows capture paths. No mock telemetry.</span>
+        <span>Capture protection active for supported Windows capture paths. Safe desktop workflow runtime.</span>
       </footer>
 
       {/* Workspace Editor Modal */}
@@ -186,6 +202,20 @@ export const App: React.FC = () => {
         isOpen={isProviderModalOpen}
         onClose={() => setIsProviderModalOpen(false)}
       />
+
+      {/* Phase 5 Workflow Editor Modal */}
+      {selectedWorkspaceForWorkflow && (
+        <WorkflowEditorModal
+          isOpen={isWorkflowModalOpen}
+          onClose={() => {
+            setIsWorkflowModalOpen(false);
+            setSelectedWorkspaceForWorkflow(null);
+          }}
+          workspaceId={selectedWorkspaceForWorkflow.id}
+          workspaceName={selectedWorkspaceForWorkflow.name}
+          onSave={handleSaveWorkflow}
+        />
+      )}
     </div>
   );
 };

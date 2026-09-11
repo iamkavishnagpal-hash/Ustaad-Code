@@ -103,8 +103,22 @@ except Exception as e:
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS workflows (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        trigger_json TEXT NOT NULL,
+        conditions_json TEXT NOT NULL,
+        steps_json TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+      );
+
       CREATE INDEX IF NOT EXISTS idx_workspaces_hotkey ON workspaces(hotkey);
       CREATE INDEX IF NOT EXISTS idx_sessions_workspace ON runtime_sessions(workspace_id);
+      CREATE INDEX IF NOT EXISTS idx_workflows_workspace ON workflows(workspace_id);
     `;
 
     const pythonScript = `

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-electron/
+.data/
+*.log
+acceptance-test.db
+test-ustaadg.db
+test.db
+.DS_Store
+Thumbs.db

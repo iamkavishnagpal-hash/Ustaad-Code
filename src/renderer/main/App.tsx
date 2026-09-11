@@ -5,8 +5,9 @@ import { WorkspaceEditorModal } from './components/WorkspaceEditorModal';
 import { ProviderSettingsModal } from './components/ProviderSettingsModal';
 import { WorkflowEditorModal } from './components/WorkflowEditorModal';
 import { IntegrationSettingsModal } from './components/IntegrationSettingsModal';
+import { DiagnosticsModal } from './components/DiagnosticsModal';
 import { Button } from './components/Button';
-import { Plus, Shield, Layers, Power, RefreshCw, Cpu, Workflow as WorkflowIcon, Terminal } from 'lucide-react';
+import { Plus, Shield, Layers, Power, RefreshCw, Cpu, Workflow as WorkflowIcon, Terminal, Activity } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -14,6 +15,7 @@ export const App: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
   const [isIntegrationModalOpen, setIsIntegrationModalOpen] = useState(false);
+  const [isDiagnosticsModalOpen, setIsDiagnosticsModalOpen] = useState(false);
   const [isWorkflowModalOpen, setIsWorkflowModalOpen] = useState(false);
   const [selectedWorkspaceForWorkflow, setSelectedWorkspaceForWorkflow] = useState<Workspace | null>(null);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
@@ -145,6 +147,17 @@ export const App: React.FC = () => {
             Integrations
           </Button>
 
+          {/* System Diagnostics & Settings Button (Phase 7) */}
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={Activity}
+            onClick={() => setIsDiagnosticsModalOpen(true)}
+            className="text-textSecondary hover:text-textPrimary border border-surfaceBorder"
+          >
+            Diagnostics
+          </Button>
+
           <Button
             variant="primary"
             size="sm"
@@ -220,6 +233,12 @@ export const App: React.FC = () => {
       <IntegrationSettingsModal
         isOpen={isIntegrationModalOpen}
         onClose={() => setIsIntegrationModalOpen(false)}
+      />
+
+      {/* System Diagnostics & Settings Modal (Phase 7) */}
+      <DiagnosticsModal
+        isOpen={isDiagnosticsModalOpen}
+        onClose={() => setIsDiagnosticsModalOpen(false)}
       />
 
       {/* Phase 5 Workflow Editor Modal */}

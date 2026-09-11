@@ -210,6 +210,35 @@ The Workspace is the primary unit of execution. The product is **not** a chat wi
 5. **Context Augmentation**:
    - Ingests structured repository telemetry directly into `ContextPayload` so subsequent AI steps have live git awareness.
 
+## Phase 7: Production Hardening, Lifecycle & Windows Release
+
+```text
+       STARTING ──► INITIALIZING ──► READY ──► RUNNING
+                                                  │
+                                                  ▼
+                                      STOPPING (Graceful Cleanup)
+                                                  │
+                                                  ▼
+                                               EXITED
+```
+
+### Production Subsystems
+1. **Application Lifecycle Manager (`src/main/lifecycle/app-lifecycle.ts`)**:
+   - Manages state transitions and coordinates graceful shutdown.
+   - Cancels running workflows, halts audio capture, unregisters Windows hotkeys, closes windows/overlay, destroys tray icon, and checkpoints SQLite WAL.
+2. **Windows System Tray (`src/main/windows/tray-manager.ts`)**:
+   - Native notification area presence reflecting real-time workspace and audio status.
+   - Supports pausing runtime, restoring the workspace manager, and clean termination.
+3. **Secure Credential Store (`src/main/storage/credential-store.ts`)**:
+   - Uses Electron `safeStorage` (Windows DPAPI AES-256) to encrypt API keys and integration tokens on disk.
+   - Protects keys from plain-file inspection and includes automatic secret redaction in logs.
+4. **Application Settings (`src/main/storage/app-settings.ts`)**:
+   - Validates user settings (`startWithWindows`, `closeToTray`, `theme`) via Zod.
+   - Configures native Windows login item startup via `app.setLoginItemSettings`.
+5. **Windows Packaging & Installer**:
+   - `electron-builder` builds production NSIS installer (`PersonalAIWorkspaceOS-Setup.exe`) and portable executables.
+   - Automated GitHub Actions workflow (`.github/workflows/release.yml`) builds, tests, and archives artifacts.
+
 ## Security & IPC Boundaries
 - Renderer processes (`main` and `overlay`) run with `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
 - Renderer communicates with Node.js main process exclusively via typed IPC channels defined in `@shared/ipc`.

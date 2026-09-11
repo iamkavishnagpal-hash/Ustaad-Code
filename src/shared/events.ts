@@ -44,6 +44,11 @@ export const IPC_CHANNELS = {
   // IT Application Integration Runtime (Phase 6)
   INTEGRATIONS_LIST: 'integrations:list',
 
+  // System Diagnostics & Settings (Phase 7)
+  SYSTEM_GET_DIAGNOSTICS: 'system:get-diagnostics',
+  SETTINGS_GET: 'settings:get',
+  SETTINGS_UPDATE: 'settings:update',
+
   // System windows
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_CLOSE: 'window:close',

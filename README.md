@@ -163,6 +163,19 @@ In Phase 2, the runtime coordinates live audio input and real-time context inges
 
 ---
 
+## Phase 7: Production Hardening & Windows Release
+
+Phase 7 hardens Personal AI Workspace OS into a dependable, production-ready desktop runtime:
+* **Clean Application Lifecycle**: Coordinated state machine (`STARTING` → `INITIALIZING` → `READY` → `RUNNING` → `STOPPING` → `EXITED`). No orphaned processes, dangling hotkeys, or unclosed SQLite handles on exit.
+* **Single-Instance Enforcement**: Protects against duplicate instances via Electron `requestSingleInstanceLock()`, focusing and restoring the existing workspace manager on second launch.
+* **Windows System Tray**: Minimizes cleanly to the system notification area with dynamic status menus, runtime pause/resume controls, and graceful exit.
+* **Windows SafeStorage (DPAPI)**: Provider credentials and API tokens are encrypted with hardware-backed Windows DPAPI encryption on disk with automatic credential redaction in structured logs.
+* **Settings & Startup Integration**: User configurable `Start with Windows` via `setLoginItemSettings` and `Close to Tray` behavior.
+* **Diagnostics & Health Dashboard**: Dedicated diagnostics modal providing real-time visibility into SQLite WAL status, registered hotkeys, audio capture, provider credentials, and IT tool discovery without exposing secrets.
+* **Windows Installer & CI/CD**: Packaged with `electron-builder` into `PersonalAIWorkspaceOS-Setup.exe` (NSIS) and portable executables with automated release pipelines on GitHub Actions.
+
+---
+
 ## Engineering Standards
 
 - **State Machine Integrity**: Deterministic bidirectional state transitions (`READY` ⇄ `CAPTURING` ⇄ `TRANSCRIBING` ⇄ `CONTEXT_READY`).
@@ -173,5 +186,6 @@ In Phase 2, the runtime coordinates live audio input and real-time context inges
 ---
 
 **Kavish Nagpal**  
-*Senior Data Engineer*
+*Senior Data Engineer & Systems Builder*
+
 

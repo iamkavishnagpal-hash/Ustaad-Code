@@ -2,6 +2,21 @@
 
 All notable changes to Personal AI Workspace OS will be documented in this file.
 
+## [0.3.0] - 2026-09-12
+
+### Added
+- **Phase 7 Production Hardening & Windows Release**:
+  - Deterministic application lifecycle manager (`AppLifecycleManager`) orchestrating `STARTING` → `INITIALIZING` → `READY` → `RUNNING` → `STOPPING` → `EXITED`.
+  - Coordinated shutdown sequence: cooperative workflow cancellation, audio stream deactivation, global hotkey unregistration, window teardown, and SQLite WAL checkpoint flush.
+  - Windows Single Instance lock (`app.requestSingleInstanceLock`) with automatic window restoration on duplicate launch.
+  - Windows System Tray integration (`TrayManager`) with dynamic status reflection, runtime pause/resume, and graceful application quit.
+  - Hardware-protected credential encryption via Windows DPAPI (`safeStorage`) for OpenAI, Gemini, and Anthropic API keys.
+  - Application settings persistence (`AppSettingsStore`) with native Windows login registration (`startWithWindows`).
+  - Real-time Subsystem Diagnostics & Health Dashboard modal (`DiagnosticsModal`).
+  - Structured local file logger (`Logger`) with automatic redaction of sensitive credentials, tokens, and authorization headers.
+  - Windows packaging configuration (`electron-builder`) targeting NSIS installer (`PersonalAIWorkspaceOS-Setup.exe`) and portable executables.
+  - Automated CI/CD release workflow (`.github/workflows/release.yml`) for Windows builds and packaging.
+
 ## [0.2.0] - 2026-09-11
  
 ### Added

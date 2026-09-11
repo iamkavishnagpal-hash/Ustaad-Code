@@ -89,6 +89,17 @@ export const workspaceApi = {
     return ipcRenderer.invoke(IPC_CHANNELS.INTEGRATIONS_LIST);
   },
 
+  // System Diagnostics & Settings (Phase 7)
+  getDiagnostics: (): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SYSTEM_GET_DIAGNOSTICS);
+  },
+  getSettings: (): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET);
+  },
+  updateSettings: (updates: any): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_UPDATE, updates);
+  },
+
   // Event subscriptions
   onStateChanged: (callback: (snapshot: RuntimeStateSnapshot) => void) => {
     const handler = (_event: any, snapshot: RuntimeStateSnapshot) => callback(snapshot);

@@ -9,6 +9,8 @@ import { WorkflowRuntime as DesktopWorkflowRuntime } from '../workflows/workflow
 import { WorkflowValidator } from '../workflows/workflow-validator';
 import { Workflow } from '../workflows/workflow-types';
 import { IntegrationRegistry } from '../integrations/integration-registry';
+import { AppLifecycleManager } from '../lifecycle/app-lifecycle';
+import { AppSettingsStore } from '../storage/app-settings';
 
 export function registerIpcHandlers(
   workspaceService: WorkspaceService,
@@ -16,7 +18,9 @@ export function registerIpcHandlers(
   hotkeyManager: HotkeyManager,
   workflowStore?: WorkflowStore,
   workflowRuntime?: DesktopWorkflowRuntime,
-  integrationRegistry?: IntegrationRegistry
+  integrationRegistry?: IntegrationRegistry,
+  lifecycleManager?: AppLifecycleManager,
+  settingsStore?: AppSettingsStore
 ): void {
   // 1. Workspace CRUD
   ipcMain.handle(IPC_CHANNELS.WORKSPACE_LIST, async () => {
@@ -198,7 +202,24 @@ export function registerIpcHandlers(
     });
   }
 
-  // 8. Window control
+  // 8. System Diagnostics & Settings (Phase 7)
+  if (lifecycleManager) {
+    ipcMain.handle(IPC_CHANNELS.SYSTEM_GET_DIAGNOSTICS, async () => {
+      return await lifecycleManager.getDiagnostics();
+    });
+  }
+
+  if (settingsStore) {
+    ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, async () => {
+      return settingsStore.get();
+    });
+
+    ipcMain.handle(IPC_CHANNELS.SETTINGS_UPDATE, async (_event, updates: any) => {
+      return settingsStore.update(updates);
+    });
+  }
+
+  // 9. Window control
   ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) win.minimize();

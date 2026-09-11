@@ -25,6 +25,10 @@ import { VsCodeIntegration } from './integrations/vscode/vscode-integration';
 import { TerminalIntegration } from './integrations/terminal/terminal-integration';
 import { GitIntegration } from './integrations/git/git-integration';
 
+import { Logger } from './utils/logger';
+import { AppSettingsStore } from './storage/app-settings';
+import { TrayManager } from './windows/tray-manager';
+import { AppLifecycleManager } from './lifecycle/app-lifecycle';
 import { registerIpcHandlers } from './ipc/handlers';
 
 // Enforce single instance lock on Windows
@@ -37,6 +41,9 @@ let windowManager: WindowManager | null = null;
 let hotkeyManager: HotkeyManager | null = null;
 let runtime: WorkspaceRuntime | null = null;
 let workflowRuntime: DesktopWorkflowRuntime | null = null;
+let trayManager: TrayManager | null = null;
+let lifecycleManager: AppLifecycleManager | null = null;
+let settingsStore: AppSettingsStore | null = null;
 
 async function bootstrap(): Promise<void> {
   // 1. Initialize SQLite Database
@@ -106,6 +113,40 @@ async function bootstrap(): Promise<void> {
     workflowEventsBus
   );
 
+  // Phase 7 Production Hardening & System Stores
+  Logger.initialize();
+  Logger.info('application_started', {
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    platform: process.platform,
+    arch: process.arch,
+  });
+
+  settingsStore = new AppSettingsStore();
+
+  // Initialize System Tray
+  trayManager = new TrayManager(
+    windowManager,
+    runtime,
+    async () => {
+      await lifecycleManager?.gracefulShutdown();
+    }
+  );
+  trayManager.initialize();
+
+  lifecycleManager = new AppLifecycleManager(
+    runtime,
+    workflowRuntime,
+    hotkeyManager,
+    windowManager,
+    trayManager,
+    db,
+    integrationRegistry,
+    credentialStore,
+    settingsStore
+  );
+  lifecycleManager.setReady();
+
   // 4. Register IPC endpoints
   registerIpcHandlers(
     workspaceService,
@@ -113,7 +154,9 @@ async function bootstrap(): Promise<void> {
     hotkeyManager,
     workflowStore,
     workflowRuntime,
-    integrationRegistry
+    integrationRegistry,
+    lifecycleManager,
+    settingsStore
   );
 
   // 5. Create Main Settings Window
@@ -126,9 +169,14 @@ async function bootstrap(): Promise<void> {
 
   // Handle focus when second instance is requested
   app.on('second-instance', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
+    Logger.info('second_instance_launched', { action: 'focus_existing_window' });
+    const win = windowManager?.getMainWindow();
+    if (win && !win.isDestroyed()) {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    } else {
+      windowManager?.createMainWindow();
     }
   });
 }
@@ -136,15 +184,26 @@ async function bootstrap(): Promise<void> {
 app.whenReady().then(bootstrap);
 
 app.on('window-all-closed', () => {
-  // On Windows, keep running in tray / background for hotkeys unless explicitly terminated
-  // But for Phase 1 dev convenience, if all windows close and no active session, quit:
-  if (process.platform !== 'darwin') {
-    app.quit();
+  // On Windows, keep running in system tray unless explicitly exited
+  const currentSettings = settingsStore?.get();
+  if (currentSettings?.closeToTray) {
+    Logger.debug('window_all_closed', { status: 'running_in_tray' });
+  } else {
+    // If not configured to stay in tray, quit gracefully
+    lifecycleManager?.gracefulShutdown().finally(() => {
+      app.quit();
+    });
   }
 });
 
-app.on('will-quit', () => {
-  if (hotkeyManager) {
-    hotkeyManager.unregisterAll();
+let isQuitting = false;
+app.on('before-quit', (e) => {
+  if (!isQuitting) {
+    e.preventDefault();
+    isQuitting = true;
+    Logger.info('application_shutdown_triggered', { reason: 'before-quit' });
+    lifecycleManager?.gracefulShutdown().finally(() => {
+      app.exit(0);
+    });
   }
 });

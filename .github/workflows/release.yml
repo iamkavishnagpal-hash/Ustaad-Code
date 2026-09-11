@@ -1,0 +1,52 @@
+name: Windows Production Release & Packaging
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-package:
+    name: Build & Package Windows Distribution
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Python Runtime (for Native Builds)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Test Suite (Vitest)
+        run: npm test
+
+      - name: Build TypeScript Main & React Vite Renderer
+        run: npm run build
+
+      - name: Build Windows Installer & Portable Package
+        run: npx electron-builder --win --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows Distribution Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PersonalAIWorkspaceOS-Windows-Release
+          path: |
+            release/*.exe
+            release/*.blockmap
+          retention-days: 14

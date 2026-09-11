@@ -18,5 +18,8 @@ The Personal AI Workspace OS is designed as a local-first desktop layer coordina
 - Where configured, the Overlay HUD applies Windows `SetWindowDisplayAffinity` (`WDA_EXCLUDEFROMCAPTURE` / `WDA_MONITOR`).
 - **Telemetry Honesty**: The system explicitly reports: *"Capture protection active for supported Windows capture paths"* and does not make misleading claims of absolute invisibility or proctoring bypass.
 
-### 4. Credential Storage
-- Phase 1 does not store API keys or passwords. Future AI provider credentials must use Windows Credential Manager / DPAPI rather than plain-text SQLite storage.
+### 4. Credential Storage & Encryption
+- **Windows DPAPI Encryption**: AI Provider credentials (OpenAI, Gemini, Anthropic) and integration tokens are encrypted using Electron's `safeStorage` (backed by Windows Data Protection API - DPAPI) using AES-256 bound to the user's OS credentials.
+- **Zero Plaintext Persistence**: API keys are never stored in plaintext SQLite databases, environment dumps, or git repositories.
+- **Automated Log Redaction**: Structured logging automatically detects and redacts authorization headers, API keys (`apiKey`, `clientSecret`, `token`), and raw capture streams.
+- **Isolated Diagnostic Telemetry**: The diagnostics dashboard surfaces configuration readiness (`CONFIGURED / NOT CONFIGURED`) without disclosing secret strings or values.

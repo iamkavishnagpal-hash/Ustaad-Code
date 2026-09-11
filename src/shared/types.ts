@@ -85,6 +85,14 @@ export interface RuntimeStateSnapshot {
   audioState: AudioInputState;
   recentTranscript: string;
   activeApplication?: ActiveApplicationContext;
+  contextPayload?: {
+    workspaceId: string;
+    sessionId: string;
+    timestamp: number;
+    transcript: { text: string; startedAt: number; updatedAt: number; segmentCount: number };
+    activeWindow?: { application?: string; title?: string; processId?: number };
+    sources: { microphone: boolean; systemAudio: boolean; activeWindow: boolean; screen: boolean };
+  };
   statusMessage: string;
   timestamp: number;
 }

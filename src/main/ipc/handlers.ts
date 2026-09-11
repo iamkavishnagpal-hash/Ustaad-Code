@@ -82,6 +82,10 @@ export function registerIpcHandlers(
   });
 
   ipcMain.handle(IPC_CHANNELS.CONTEXT_GET_CURRENT, async () => {
+    const contextRuntime = runtime.getContextRuntime();
+    if (contextRuntime) {
+      return contextRuntime.getCurrentPayload();
+    }
     return runtime.getSnapshot();
   });
 

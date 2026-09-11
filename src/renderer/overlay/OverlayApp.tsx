@@ -187,15 +187,17 @@ export const OverlayApp: React.FC = () => {
               <span className={`w-1.5 h-1.5 rounded-full ${audioState?.microphone ? 'bg-emerald-400' : 'bg-slate-600'}`} />
               MIC: {audioState?.microphone ? 'ON' : 'OFF'}
             </span>
+            <span className="flex items-center gap-1 font-mono text-slate-400 truncate max-w-[110px]" title={runtimeState?.activeApplication?.title}>
+              APP: {runtimeState?.activeApplication?.processName || 'System'}
+            </span>
             <span className="flex items-center gap-1 font-mono text-slate-500" title={audioState?.systemAudioNotice}>
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
               SYS: OFF
             </span>
           </div>
 
           <div className="flex items-center gap-1 text-textSecondary text-[10px]" title={verification?.privacyNotice}>
             <Shield size={11} className={verification?.privacyPolicyApplied ? 'text-emerald-400' : 'text-slate-400'} />
-            <span className="truncate max-w-[100px]">
+            <span className="truncate max-w-[80px]">
               {verification?.privacyPolicyApplied ? 'Protected' : 'Normal'}
             </span>
           </div>

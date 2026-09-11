@@ -10,6 +10,7 @@ import { RuntimeEventsBus } from './runtime-events';
 import { AudioManager } from '../audio/audio-manager';
 import { TranscriptionManager } from '../transcription/transcription-manager';
 import { ContextManager } from '../context/context-manager';
+import { ContextRuntime } from '../context/context-runtime';
 import { RuntimeSessionRecord, RuntimeStateSnapshot, RuntimeStatus, VerificationReport, Workspace } from '../../shared/types';
 
 export class WorkspaceRuntime {
@@ -30,8 +31,12 @@ export class WorkspaceRuntime {
     private eventsBus: RuntimeEventsBus,
     private audioManager: AudioManager,
     private transcriptionManager: TranscriptionManager,
-    private contextManager: ContextManager
+    private contextManager: ContextManager,
+    private contextRuntime?: ContextRuntime
   ) {
+    if (!this.contextRuntime) {
+      this.contextRuntime = new ContextRuntime(this.audioManager, this.transcriptionManager);
+    }
     this.setupAudioListeners();
   }
 
@@ -135,6 +140,9 @@ export class WorkspaceRuntime {
       // Initialize session context
       this.transcriptionManager.setSession(this.currentSession.id);
       this.contextManager.setSession(this.currentSession.id, workspace.id);
+      if (this.contextRuntime) {
+        await this.contextRuntime.startContext(workspace.id, this.currentSession.id);
+      }
 
       this.transitionTo('READY', `Workspace "${workspace.name}" active and ready`);
 
@@ -178,6 +186,10 @@ export class WorkspaceRuntime {
     return this.audioManager.toggleMute();
   }
 
+  public getContextRuntime(): ContextRuntime | undefined {
+    return this.contextRuntime;
+  }
+
   public async stop(): Promise<void> {
     if (this.stateMachine.current === 'IDLE') return;
 
@@ -185,6 +197,9 @@ export class WorkspaceRuntime {
 
     // Ensure audio and transcription are safely ceased
     await this.audioManager.stopListening();
+    if (this.contextRuntime) {
+      await this.contextRuntime.stopContext();
+    }
     this.transcriptionManager.clear();
     this.contextManager.clear();
 
@@ -201,6 +216,7 @@ export class WorkspaceRuntime {
 
   public getSnapshot(): RuntimeStateSnapshot {
     const currentContext = this.contextManager.getCurrentContext();
+    const contextPayload = this.contextRuntime ? this.contextRuntime.getCurrentPayload() : undefined;
 
     return {
       status: this.stateMachine.current,
@@ -210,6 +226,7 @@ export class WorkspaceRuntime {
       audioState: this.audioManager.getState(),
       recentTranscript: this.contextManager.getRecentPreview(),
       activeApplication: currentContext.activeApplication,
+      contextPayload,
       statusMessage: this.statusMessage,
       timestamp: Date.now(),
     };

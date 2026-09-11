@@ -67,3 +67,6 @@ export const WorkspaceInputSchema = WorkspaceSchema.omit({
   createdAt: true,
   updatedAt: true,
 });
+
+export { ContextPayloadSchema, type ContextPayload } from '../main/context/context-payload';
+

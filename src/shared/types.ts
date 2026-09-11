@@ -11,6 +11,9 @@ export type RuntimeStatus =
   | 'OPENING_SOURCE'
   | 'VERIFYING'
   | 'READY'
+  | 'CAPTURING'
+  | 'TRANSCRIBING'
+  | 'CONTEXT_READY'
   | 'RUNNING'
   | 'STOPPING'
   | 'ERROR';
@@ -24,6 +27,44 @@ export interface VerificationReport {
   privacyPolicyApplied: boolean;
   privacyNotice: string;
   errors: string[];
+}
+
+export interface AudioInputState {
+  microphone: boolean;
+  systemAudio: boolean;
+  muted: boolean;
+  deviceName?: string;
+  systemAudioSupported: boolean;
+  systemAudioNotice: string;
+}
+
+export interface AudioChunk {
+  data: Buffer;
+  timestamp: number;
+  sampleRate: number;
+  channels: number;
+}
+
+export interface TranscriptSegment {
+  id: string;
+  sessionId: string;
+  text: string;
+  isFinal: boolean;
+  timestamp: number;
+}
+
+export interface ActiveApplicationContext {
+  title: string;
+  processName?: string;
+  pid?: number;
+}
+
+export interface RuntimeContext {
+  sessionId: string;
+  workspaceId: string;
+  transcript: TranscriptSegment[];
+  activeApplication?: ActiveApplicationContext;
+  capturedAt: number;
 }
 
 export interface RuntimeSessionRecord {
@@ -41,6 +82,9 @@ export interface RuntimeStateSnapshot {
   activeWorkspace: Workspace | null;
   activeSession: RuntimeSessionRecord | null;
   verificationReport: VerificationReport | null;
+  audioState: AudioInputState;
+  recentTranscript: string;
+  activeApplication?: ActiveApplicationContext;
   statusMessage: string;
   timestamp: number;
 }

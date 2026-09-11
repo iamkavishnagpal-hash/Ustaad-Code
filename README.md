@@ -121,21 +121,57 @@ Overlay HUD (Sleek, transparent, always-on-top desktop status bar)
 ## Roadmap
 
 * **Phase 1**: Workspace Runtime & Desktop Foundation ✅
-* **Phase 2**: Audio Runtime (Microphone, system audio, local Whisper STT)
+* **Phase 2**: Live Context Runtime (Continuous audio capture, local Whisper STT abstraction, sliding window transcript buffer, active app probe) ✅
 * **Phase 3**: AI Provider Runtime (Gemini, Claude, OpenAI, Ollama adapters & streaming)
-* **Phase 4**: Screen & Context Engine (Selective window capture, active application detection)
+* **Phase 4**: Screen & Context Engine (Selective window capture, optical character recognition)
 * **Phase 5**: Workflow Builder & Permission-Checked Action Engine
 * **Phase 6**: IT Workflows & Tooling Integrations (VS Code, Git, Terminal)
 
 ---
 
+## Phase 2: Live Context Stream & Audio Architecture
+
+In Phase 2, the runtime coordinates live audio input and real-time context ingestion without speculative cloud AI dependencies:
+
+```text
+               ┌───────────────────────┐
+               │    Microphone Source  │ (16kHz 16-bit Mono Chunks)
+               └───────────┬───────────┘
+                           │
+                           ▼
+               ┌───────────────────────┐
+               │ Transcription Provider│ (Whisper Local / Speech Engine)
+               └───────────┬───────────┘
+                           │
+                           ▼ Transcript Segments
+               ┌───────────────────────┐
+               │    Transcript Buffer  │ (FIFO Bounded Sliding Window)
+               │ (Max 50 Segments, TTL)│
+               └───────────┬───────────┘
+                           │ + Win32 Foreground Probe (ActiveApplicationDetector)
+                           ▼
+               ┌───────────────────────┐
+               │    Context Manager    │ ──► IPC Broadcast to Overlay HUD
+               └───────────────────────┘
+```
+
+* **Microphone Capture**: Ingests mono PCM chunks (16kHz, 16-bit signed integer) with automatic silence detection and mute toggle.
+* **System Audio Truth**: Honest loopback reporting (`{ available: false, reason: "Requires virtual audio driver or Windows WASAPI loopback capture" }`). Zero fake capture states.
+* **Bounded In-Memory Ring Buffer**: Implements an immutable FIFO sliding window retaining a maximum of 50 recent segments (configurable duration / max characters). Raw audio and transcripts are never dumped to persistent disk.
+* **Active Application Probe**: Win32 foreground window and process detection (`GetForegroundWindow`, `GetWindowThreadProcessId`) with in-memory TTL caching.
+* **Overlay HUD Integration**: Real-time microphone badge (`MIC: ON/OFF`), transcription state, rolling context preview, and instant `[Listen / Stop]` and `[Mute]` controls.
+
+---
+
 ## Engineering Standards
 
-- **State Machine Integrity**: Deterministic sequential state transitions (`IDLE` → `ACTIVATING` → `OPENING_SOURCE` → `VERIFYING` → `READY`).
-- **Zero Hallucination / No Mock UX**: Telemetry reports actual OS window display affinity and real reachability tests.
+- **State Machine Integrity**: Deterministic bidirectional state transitions (`READY` ⇄ `CAPTURING` ⇄ `TRANSCRIBING` ⇄ `CONTEXT_READY`).
+- **Zero Hallucination / No Mock UX**: Telemetry reports actual OS window display affinity, real microphone device states, and truthful system audio availability.
+- **Privacy-Preserving Ephemeral Memory**: Audio chunks and rolling transcripts remain strictly in volatile memory. Only structured session metadata is committed to SQLite.
 - **ACID Persistence**: Local storage runs in SQLite WAL mode (`journal_mode=WAL`) preventing lock contention between background orchestrators and foreground UI threads.
 
 ---
 
 **Kavish Nagpal**  
 *Senior Data Engineer*
+

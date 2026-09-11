@@ -68,6 +68,23 @@ export function registerIpcHandlers(
     return runtime.stop();
   });
 
+  // 4. Live Context & Audio (Phase 2)
+  ipcMain.handle(IPC_CHANNELS.AUDIO_START_LISTENING, async () => {
+    return runtime.startListening();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AUDIO_STOP_LISTENING, async () => {
+    return runtime.stopListening();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AUDIO_TOGGLE_MUTE, async () => {
+    return runtime.toggleMute();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.CONTEXT_GET_CURRENT, async () => {
+    return runtime.getSnapshot();
+  });
+
   // 4. Window control
   ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);

@@ -10,6 +10,9 @@ import { PrivacyManager } from './privacy/privacy-manager';
 import { HotkeyManager } from './hotkeys/hotkey-manager';
 import { RuntimeEventsBus } from './runtime/runtime-events';
 import { WorkspaceRuntime } from './runtime/workspace-runtime';
+import { AudioManager } from './audio/audio-manager';
+import { TranscriptionManager } from './transcription/transcription-manager';
+import { ContextManager } from './context/context-manager';
 import { registerIpcHandlers } from './ipc/handlers';
 
 // Enforce single instance lock on Windows
@@ -37,6 +40,11 @@ async function bootstrap(): Promise<void> {
   hotkeyManager = new HotkeyManager();
   const eventsBus = new RuntimeEventsBus();
 
+  // Phase 2 Live Context Services
+  const audioManager = new AudioManager();
+  const transcriptionManager = new TranscriptionManager();
+  const contextManager = new ContextManager();
+
   // 3. Initialize Runtime
   runtime = new WorkspaceRuntime(
     workspaceService,
@@ -46,7 +54,10 @@ async function bootstrap(): Promise<void> {
     privacyManager,
     hotkeyManager,
     sessionStore,
-    eventsBus
+    eventsBus,
+    audioManager,
+    transcriptionManager,
+    contextManager
   );
 
   // 4. Register IPC endpoints

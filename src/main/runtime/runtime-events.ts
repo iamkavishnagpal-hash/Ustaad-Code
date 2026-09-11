@@ -39,4 +39,31 @@ export class RuntimeEventsBus extends EventEmitter {
       }
     }
   }
+
+  public notifyTranscript(segment: any): void {
+    this.emit('transcript:chunk', segment);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_TRANSCRIPT_CHUNK, segment);
+      }
+    }
+  }
+
+  public notifyContext(context: any): void {
+    this.emit('context:updated', context);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_CONTEXT_UPDATED, context);
+      }
+    }
+  }
+
+  public notifyAudioState(state: any): void {
+    this.emit('audio:changed', state);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_AUDIO_STATE_CHANGED, state);
+      }
+    }
+  }
 }

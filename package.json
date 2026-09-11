@@ -1,7 +1,7 @@
 {
   "name": "ustaadg-desktop",
-  "version": "0.1.0",
-  "description": "Personal AI Workspace OS — Desktop Runtime",
+  "version": "0.2.0",
+  "description": "Personal AI Workspace OS - Desktop Runtime",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"tsc -w -p tsconfig.main.json\" \"wait-on tcp:5173 && electron .\"",

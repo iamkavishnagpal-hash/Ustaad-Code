@@ -18,6 +18,12 @@ export class ContextBuffer {
     dimensions?: { width: number; height: number };
     capturedAt?: number;
   } | null = null;
+  private currentGitContext: {
+    branch: string;
+    changedFiles: number;
+    stagedFiles: number;
+    diffSummary?: string;
+  } | null = null;
   private readonly maxSegments: number;
   private readonly maxChars: number;
   private readonly retentionMs: number;
@@ -34,8 +40,23 @@ export class ContextBuffer {
     this.segments = [];
     this.currentActiveWindow = null;
     this.currentScreenContext = null;
+    this.currentGitContext = null;
     this.sessionStartTime = sessionStartTime;
     this.lastUpdateTime = sessionStartTime;
+  }
+
+  public setGitContext(git: {
+    branch: string;
+    changedFiles: number;
+    stagedFiles: number;
+    diffSummary?: string;
+  } | null): void {
+    this.currentGitContext = git;
+    this.lastUpdateTime = Date.now();
+  }
+
+  public getGitContext() {
+    return this.currentGitContext;
   }
 
   public appendTranscript(segment: TranscriptSegment): void {
@@ -118,6 +139,7 @@ export class ContextBuffer {
           }
         : undefined,
       screenContext: this.currentScreenContext || undefined,
+      gitContext: this.currentGitContext || undefined,
       sources,
     };
   }

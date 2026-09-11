@@ -8,13 +8,15 @@ import { WorkflowStore } from '../workflows/workflow-store';
 import { WorkflowRuntime as DesktopWorkflowRuntime } from '../workflows/workflow-runtime';
 import { WorkflowValidator } from '../workflows/workflow-validator';
 import { Workflow } from '../workflows/workflow-types';
+import { IntegrationRegistry } from '../integrations/integration-registry';
 
 export function registerIpcHandlers(
   workspaceService: WorkspaceService,
   runtime: WorkspaceRuntime,
   hotkeyManager: HotkeyManager,
   workflowStore?: WorkflowStore,
-  workflowRuntime?: DesktopWorkflowRuntime
+  workflowRuntime?: DesktopWorkflowRuntime,
+  integrationRegistry?: IntegrationRegistry
 ): void {
   // 1. Workspace CRUD
   ipcMain.handle(IPC_CHANNELS.WORKSPACE_LIST, async () => {
@@ -189,7 +191,14 @@ export function registerIpcHandlers(
     });
   }
 
-  // 7. Window control
+  // 7. IT Application Integrations (Phase 6)
+  if (integrationRegistry) {
+    ipcMain.handle(IPC_CHANNELS.INTEGRATIONS_LIST, async () => {
+      return await integrationRegistry.getStatuses();
+    });
+  }
+
+  // 8. Window control
   ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) win.minimize();

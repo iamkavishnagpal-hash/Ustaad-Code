@@ -4,14 +4,16 @@ import { WorkspaceList } from './components/WorkspaceList';
 import { WorkspaceEditorModal } from './components/WorkspaceEditorModal';
 import { ProviderSettingsModal } from './components/ProviderSettingsModal';
 import { WorkflowEditorModal } from './components/WorkflowEditorModal';
+import { IntegrationSettingsModal } from './components/IntegrationSettingsModal';
 import { Button } from './components/Button';
-import { Plus, Shield, Layers, Power, RefreshCw, Cpu, Workflow as WorkflowIcon } from 'lucide-react';
+import { Plus, Shield, Layers, Power, RefreshCw, Cpu, Workflow as WorkflowIcon, Terminal } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
+  const [isIntegrationModalOpen, setIsIntegrationModalOpen] = useState(false);
   const [isWorkflowModalOpen, setIsWorkflowModalOpen] = useState(false);
   const [selectedWorkspaceForWorkflow, setSelectedWorkspaceForWorkflow] = useState<Workspace | null>(null);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
@@ -132,6 +134,17 @@ export const App: React.FC = () => {
             AI Providers
           </Button>
 
+          {/* IT Application Integrations Button (Phase 6) */}
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={Terminal}
+            onClick={() => setIsIntegrationModalOpen(true)}
+            className="text-textSecondary hover:text-textPrimary border border-surfaceBorder"
+          >
+            Integrations
+          </Button>
+
           <Button
             variant="primary"
             size="sm"
@@ -201,6 +214,12 @@ export const App: React.FC = () => {
       <ProviderSettingsModal
         isOpen={isProviderModalOpen}
         onClose={() => setIsProviderModalOpen(false)}
+      />
+
+      {/* IT Application Integrations Modal (Phase 6) */}
+      <IntegrationSettingsModal
+        isOpen={isIntegrationModalOpen}
+        onClose={() => setIsIntegrationModalOpen(false)}
       />
 
       {/* Phase 5 Workflow Editor Modal */}

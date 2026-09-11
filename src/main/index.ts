@@ -16,11 +16,16 @@ import { ContextManager } from './context/context-manager';
 import { ProviderRegistry } from './providers/provider-registry';
 import { CredentialStore } from './storage/credential-store';
 import { ProviderGateway } from './providers/provider-gateway';
-import { registerIpcHandlers } from './ipc/handlers';
 import { WorkflowStore } from './workflows/workflow-store';
 import { ActionRegistry } from './workflows/action-registry';
 import { WorkflowRuntime as DesktopWorkflowRuntime } from './workflows/workflow-runtime';
 import { WorkflowEventsBus } from './workflows/workflow-events';
+import { IntegrationRegistry } from './integrations/integration-registry';
+import { VsCodeIntegration } from './integrations/vscode/vscode-integration';
+import { TerminalIntegration } from './integrations/terminal/terminal-integration';
+import { GitIntegration } from './integrations/git/git-integration';
+
+import { registerIpcHandlers } from './ipc/handlers';
 
 // Enforce single instance lock on Windows
 const gotTheLock = app.requestSingleInstanceLock();
@@ -85,8 +90,14 @@ async function bootstrap(): Promise<void> {
     providerGateway
   );
 
+  // Phase 6 IT Application Integration Runtime
+  const integrationRegistry = new IntegrationRegistry();
+  integrationRegistry.register(new VsCodeIntegration());
+  integrationRegistry.register(new TerminalIntegration());
+  integrationRegistry.register(new GitIntegration());
+
   // Phase 5 Workflow & Action Runtime
-  const actionRegistry = new ActionRegistry(runtime);
+  const actionRegistry = new ActionRegistry(runtime, integrationRegistry);
   workflowRuntime = new DesktopWorkflowRuntime(
     workflowStore,
     actionRegistry,
@@ -96,7 +107,14 @@ async function bootstrap(): Promise<void> {
   );
 
   // 4. Register IPC endpoints
-  registerIpcHandlers(workspaceService, runtime, hotkeyManager, workflowStore, workflowRuntime);
+  registerIpcHandlers(
+    workspaceService,
+    runtime,
+    hotkeyManager,
+    workflowStore,
+    workflowRuntime,
+    integrationRegistry
+  );
 
   // 5. Create Main Settings Window
   const mainWindow = windowManager.createMainWindow();

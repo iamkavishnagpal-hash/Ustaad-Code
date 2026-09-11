@@ -9,6 +9,15 @@ export class ActionPolicy {
     START_CONTEXT: 'SAFE',
     STOP_CONTEXT: 'SAFE',
     REQUEST_AI_RESPONSE: 'SAFE',
+    OPEN_VSCODE: 'SAFE',
+    FOCUS_VSCODE: 'SAFE',
+    OPEN_VSCODE_FOLDER: 'SAFE',
+    OPEN_VSCODE_FILE: 'SAFE',
+    OPEN_TERMINAL: 'SAFE',
+    FOCUS_TERMINAL: 'SAFE',
+    GET_GIT_STATUS: 'SAFE',
+    GET_GIT_CURRENT_BRANCH: 'SAFE',
+    GET_GIT_DIFF: 'SAFE',
   };
 
   public static getPermissionLevel(actionType: ActionType): PermissionLevel {

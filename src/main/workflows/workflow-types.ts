@@ -25,7 +25,16 @@ export type ActionType =
   | 'HIDE_OVERLAY'
   | 'START_CONTEXT'
   | 'STOP_CONTEXT'
-  | 'REQUEST_AI_RESPONSE';
+  | 'REQUEST_AI_RESPONSE'
+  | 'OPEN_VSCODE'
+  | 'FOCUS_VSCODE'
+  | 'OPEN_VSCODE_FOLDER'
+  | 'OPEN_VSCODE_FILE'
+  | 'OPEN_TERMINAL'
+  | 'FOCUS_TERMINAL'
+  | 'GET_GIT_STATUS'
+  | 'GET_GIT_CURRENT_BRANCH'
+  | 'GET_GIT_DIFF';
 
 export interface WorkflowStep {
   id: string;

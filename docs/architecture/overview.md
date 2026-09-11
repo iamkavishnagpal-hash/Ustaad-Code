@@ -170,6 +170,46 @@ The Workspace is the primary unit of execution. The product is **not** a chat wi
 4. **Overlay HUD Workflow Banner**:
    - Displays real-time step execution (`Step X of Y: ACTION`), success banners, failure notifications, and a direct cancellation action.
 
+## Phase 6: IT Application Integration Runtime Subsystem
+
+```text
+       Workflow Runtime
+              │
+              ▼
+       Action Registry
+              │
+              ▼
+    Integration Registry (`src/main/integrations/integration-registry.ts`)
+              │
+      ┌───────┼───────┐
+      ▼       ▼       ▼
+   VS Code Terminal  Git
+      │       │       │
+      ▼       ▼       ▼
+  Desktop Applications on Windows
+              │ (Structured Data: Branch, Status, Diff)
+              ▼
+        ContextBuffer (`setGitContext`)
+              │
+              ▼
+        ContextPayload & ContextAssembler
+              │
+              ▼
+     AI Provider Response
+```
+
+### Integration Subsystem Responsibilities
+1. **Integration Registry (`src/main/integrations/integration-registry.ts`)**:
+   - Manages desktop tool integrations, dynamic discovery, and capability checking.
+2. **VS Code Adapter (`src/main/integrations/vscode/vscode-integration.ts`)**:
+   - Capabilities: `OPEN`, `FOCUS`, `OPEN_FOLDER`, `OPEN_FILE`. Invokes official CLI without fragile GUI pixel coordinates.
+3. **Terminal Adapter (`src/main/integrations/terminal/terminal-integration.ts`)**:
+   - Capabilities: `OPEN`, `FOCUS`. Spawns `wt.exe` with PowerShell fallback.
+4. **Git Adapter (`src/main/integrations/git/git-integration.ts`)**:
+   - Capabilities: `GET_STATUS`, `GET_CURRENT_BRANCH`, `GET_DIFF`. Performs structured parsing of repository state.
+5. **Context Augmentation**:
+   - Ingests structured repository telemetry directly into `ContextPayload` so subsequent AI steps have live git awareness.
+
 ## Security & IPC Boundaries
 - Renderer processes (`main` and `overlay`) run with `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
 - Renderer communicates with Node.js main process exclusively via typed IPC channels defined in `@shared/ipc`.
@@ -180,6 +220,7 @@ The Workspace is the primary unit of execution. The product is **not** a chat wi
 **Author**:
 **Kavish Nagpal**  
 *Senior Data Engineer & Systems Builder*
+
 
 
 

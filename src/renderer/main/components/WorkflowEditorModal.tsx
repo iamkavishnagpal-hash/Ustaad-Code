@@ -295,6 +295,12 @@ export const WorkflowEditorModal: React.FC<WorkflowEditorModalProps> = ({
                         <option value="REQUEST_AI_RESPONSE">REQUEST_AI_RESPONSE</option>
                         <option value="OPEN_URL">OPEN_URL</option>
                         <option value="OPEN_APPLICATION">OPEN_APPLICATION</option>
+                        <option value="OPEN_VSCODE">VS Code: Open / Focus</option>
+                        <option value="OPEN_VSCODE_FOLDER">VS Code: Open Folder</option>
+                        <option value="OPEN_VSCODE_FILE">VS Code: Open File</option>
+                        <option value="OPEN_TERMINAL">Terminal: Open Windows Terminal / PowerShell</option>
+                        <option value="GET_GIT_STATUS">Git: Inspect Repository Status</option>
+                        <option value="GET_GIT_DIFF">Git: Inspect Diff & Uncommitted Changes</option>
                       </select>
                       <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
                         {step.permissionLevel || 'SAFE'}
@@ -327,6 +333,36 @@ export const WorkflowEditorModal: React.FC<WorkflowEditorModalProps> = ({
                       placeholder="Application executable or path (e.g. code.exe)"
                       value={step.parameters?.target || ''}
                       onChange={(e) => handleUpdateStep(index, { parameters: { ...step.parameters, target: e.target.value } })}
+                      className="w-full bg-surface border border-surfaceBorder rounded px-2 py-1 text-xs text-textPrimary"
+                    />
+                  )}
+
+                  {step.actionType === 'OPEN_VSCODE_FOLDER' && (
+                    <input
+                      type="text"
+                      placeholder="Workspace directory path (defaults to current directory .)"
+                      value={step.parameters?.folderPath || ''}
+                      onChange={(e) => handleUpdateStep(index, { parameters: { ...step.parameters, folderPath: e.target.value } })}
+                      className="w-full bg-surface border border-surfaceBorder rounded px-2 py-1 text-xs text-textPrimary"
+                    />
+                  )}
+
+                  {step.actionType === 'OPEN_VSCODE_FILE' && (
+                    <input
+                      type="text"
+                      placeholder="Target file path (e.g. src/index.ts)"
+                      value={step.parameters?.filePath || ''}
+                      onChange={(e) => handleUpdateStep(index, { parameters: { ...step.parameters, filePath: e.target.value } })}
+                      className="w-full bg-surface border border-surfaceBorder rounded px-2 py-1 text-xs text-textPrimary"
+                    />
+                  )}
+
+                  {step.actionType === 'OPEN_TERMINAL' && (
+                    <input
+                      type="text"
+                      placeholder="Working directory (defaults to workspace directory)"
+                      value={step.parameters?.workingDirectory || ''}
+                      onChange={(e) => handleUpdateStep(index, { parameters: { ...step.parameters, workingDirectory: e.target.value } })}
                       className="w-full bg-surface border border-surfaceBorder rounded px-2 py-1 text-xs text-textPrimary"
                     />
                   )}

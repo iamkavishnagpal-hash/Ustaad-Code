@@ -121,11 +121,11 @@ Overlay HUD (Sleek, transparent, always-on-top desktop status bar)
 ## Roadmap
 
 * **Phase 1**: Workspace Runtime & Desktop Foundation ✅
-* **Phase 2**: Live Context Runtime (Continuous audio capture, local Whisper STT abstraction, sliding window transcript buffer, active app probe) ✅
-* **Phase 3**: AI Provider Runtime (Gemini, Claude, OpenAI, Ollama adapters & streaming)
-* **Phase 4**: Screen & Context Engine (Selective window capture, optical character recognition)
-* **Phase 5**: Workflow Builder & Permission-Checked Action Engine
-* **Phase 6**: IT Workflows & Tooling Integrations (VS Code, Git, Terminal)
+* **Phase 2**: Live Context Runtime (Continuous audio capture, sliding window transcript buffer, active app probe) ✅
+* **Phase 3**: AI Provider Runtime (Gemini, Claude, OpenAI, Ollama streaming gateway) ✅
+* **Phase 4**: Screen & Vision Context Engine (Event-driven screen capture, Windows OCR) ✅
+* **Phase 5**: Workflow Builder & Permission-Checked Action Engine (Condition engine, Action Registry, cancellation) ✅
+* **Phase 6**: IT Application Integration Runtime (VS Code, Git, Terminal capability providers & context feeding) ✅
 
 ---
 

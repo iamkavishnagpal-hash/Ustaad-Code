@@ -6,6 +6,7 @@ import {
 } from './workflow-types';
 import { WorkspaceRuntime } from '../runtime/workspace-runtime';
 import { shell } from 'electron';
+import { IntegrationRegistry } from '../integrations/integration-registry';
 
 export interface WorkflowActionHandler {
   readonly type: ActionType;
@@ -16,8 +17,12 @@ export interface WorkflowActionHandler {
 export class ActionRegistry {
   private handlers: Map<ActionType, WorkflowActionHandler> = new Map();
 
-  constructor(private runtime: WorkspaceRuntime) {
+  constructor(
+    private runtime: WorkspaceRuntime,
+    private integrationRegistry?: IntegrationRegistry
+  ) {
     this.registerDefaults();
+    this.registerIntegrationActions();
   }
 
   public register(handler: WorkflowActionHandler): void {
@@ -122,5 +127,118 @@ export class ActionRegistry {
         }
       },
     });
+  }
+
+  private registerIntegrationActions(): void {
+    const getIntegration = (id: string) => {
+      if (!this.integrationRegistry) {
+        throw new Error('IntegrationRegistry is not initialized');
+      }
+      const integration = this.integrationRegistry.get(id);
+      if (!integration) {
+        throw new Error(`Integration "${id}" is not registered`);
+      }
+      return integration;
+    };
+
+    // --- VS CODE ACTIONS ---
+    const vsCodeActions: ActionType[] = [
+      'OPEN_VSCODE',
+      'FOCUS_VSCODE',
+      'OPEN_VSCODE_FOLDER',
+      'OPEN_VSCODE_FILE',
+    ];
+
+    for (const actionType of vsCodeActions) {
+      this.register({
+        type: actionType,
+        validate: (p) => {
+          if (actionType === 'OPEN_VSCODE_FILE' && !p.filePath && !p.path) {
+            return { valid: false, errors: ['filePath required for OPEN_VSCODE_FILE'] };
+          }
+          return { valid: true, errors: [] };
+        },
+        execute: async (ctx, p) => {
+          try {
+            const vscode = getIntegration('vscode');
+            const res = await vscode.execute({ type: actionType, parameters: p }, ctx);
+            return { success: res.success, output: res.message || res.data, error: res.error };
+          } catch (err: any) {
+            return { success: false, error: err.message };
+          }
+        },
+      });
+    }
+
+    // --- TERMINAL ACTIONS ---
+    const terminalActions: ActionType[] = ['OPEN_TERMINAL', 'FOCUS_TERMINAL'];
+    for (const actionType of terminalActions) {
+      this.register({
+        type: actionType,
+        validate: () => ({ valid: true, errors: [] }),
+        execute: async (ctx, p) => {
+          try {
+            const term = getIntegration('terminal');
+            const res = await term.execute({ type: actionType, parameters: p }, ctx);
+            return { success: res.success, output: res.message || res.data, error: res.error };
+          } catch (err: any) {
+            return { success: false, error: err.message };
+          }
+        },
+      });
+    }
+
+    // --- GIT ACTIONS ---
+    const gitActions: ActionType[] = [
+      'GET_GIT_STATUS',
+      'GET_GIT_CURRENT_BRANCH',
+      'GET_GIT_DIFF',
+    ];
+
+    for (const actionType of gitActions) {
+      this.register({
+        type: actionType,
+        validate: () => ({ valid: true, errors: [] }),
+        execute: async (ctx, p) => {
+          try {
+            const git = getIntegration('git');
+            const res = await git.execute({ type: actionType, parameters: p }, ctx);
+
+            // If structured Git status or diff is retrieved, feed directly to ContextBuffer!
+            if (res.success && res.data) {
+              const contextRuntime = this.runtime.getContextRuntime();
+              if (contextRuntime) {
+                const buffer = contextRuntime.getBuffer();
+                if (actionType === 'GET_GIT_STATUS') {
+                  buffer.setGitContext({
+                    branch: res.data.branch,
+                    changedFiles: res.data.changedFiles,
+                    stagedFiles: res.data.stagedFiles,
+                  });
+                } else if (actionType === 'GET_GIT_DIFF') {
+                  const existing = buffer.getGitContext() || {
+                    branch: 'unknown',
+                    changedFiles: res.data.filesChanged,
+                    stagedFiles: 0,
+                  };
+                  buffer.setGitContext({
+                    ...existing,
+                    diffSummary: res.data.diffSummary,
+                  });
+                }
+              }
+            }
+
+            return {
+              success: res.success,
+              output: res.message || JSON.stringify(res.data),
+              error: res.error,
+            };
+          } catch (err: any) {
+            return { success: false, error: err.message };
+          }
+        },
+      });
+    }
   }
 }

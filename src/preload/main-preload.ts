@@ -84,6 +84,11 @@ export const workspaceApi = {
     return ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_GET_AUDIT);
   },
 
+  // IT Application Integrations (Phase 6)
+  listIntegrations: (): Promise<{ id: string; name: string; available: boolean; capabilities: string[] }[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.INTEGRATIONS_LIST);
+  },
+
   // Event subscriptions
   onStateChanged: (callback: (snapshot: RuntimeStateSnapshot) => void) => {
     const handler = (_event: any, snapshot: RuntimeStateSnapshot) => callback(snapshot);

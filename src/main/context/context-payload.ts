@@ -35,6 +35,15 @@ export const ContextPayloadSchema = z.object({
     })
     .optional(),
 
+  gitContext: z
+    .object({
+      branch: z.string(),
+      changedFiles: z.number(),
+      stagedFiles: z.number(),
+      diffSummary: z.string().optional(),
+    })
+    .optional(),
+
   sources: z.object({
     microphone: z.boolean(),
     systemAudio: z.boolean(),

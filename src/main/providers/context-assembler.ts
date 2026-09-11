@@ -24,12 +24,16 @@ export class ContextAssembler {
       ? `\n[VISIBLE SCREEN CONTEXT]:\n${context.screenContext.ocrText}`
       : '';
 
+    const gitBlock = context.gitContext
+      ? `\n[GIT REPOSITORY CONTEXT]:\nBranch: ${context.gitContext.branch} | Changed Files: ${context.gitContext.changedFiles} | Staged: ${context.gitContext.stagedFiles}${context.gitContext.diffSummary ? `\nDiff Summary:\n${context.gitContext.diffSummary}` : ''}`
+      : '';
+
     const transcriptText = context.transcript.text.trim();
     const transcriptBlock = transcriptText.length > 0
       ? `\n--- RECENT SPEECH TRANSCRIPT ---\n${transcriptText}\n--- END TRANSCRIPT ---`
       : '\n[No recent speech transcript recorded]';
 
-    const systemPrompt = `${baseInstruction}\n\n[LIVE DESKTOP CONTEXT]\n${appInfo}${screenBlock}${transcriptBlock}`;
+    const systemPrompt = `${baseInstruction}\n\n[LIVE DESKTOP CONTEXT]\n${appInfo}${gitBlock}${screenBlock}${transcriptBlock}`;
 
     const userContent = userPrompt?.trim()
       ? userPrompt.trim()

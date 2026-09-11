@@ -41,6 +41,9 @@ export const IPC_CHANNELS = {
   WORKFLOW_CANCEL: 'workflow:cancel',
   WORKFLOW_GET_AUDIT: 'workflow:get-audit',
 
+  // IT Application Integration Runtime (Phase 6)
+  INTEGRATIONS_LIST: 'integrations:list',
+
   // System windows
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_CLOSE: 'window:close',

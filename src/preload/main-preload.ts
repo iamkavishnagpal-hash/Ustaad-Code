@@ -44,6 +44,20 @@ export const workspaceApi = {
     return ipcRenderer.invoke(IPC_CHANNELS.WINDOW_CLOSE);
   },
 
+  // AI Provider Management (Phase 3)
+  listProviders: (): Promise<{ id: string; name: string; defaultModel: string }[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LLM_LIST_PROVIDERS);
+  },
+  getProviderConfig: (providerId: string): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LLM_GET_CONFIG, providerId);
+  },
+  saveProviderConfig: (config: any): Promise<{ success: boolean; error?: string }> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LLM_SAVE_CONFIG, config);
+  },
+  testProviderConnection: (providerId: string, config?: any): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LLM_TEST_CONNECTION, { providerId, config });
+  },
+
   // Event subscriptions
   onStateChanged: (callback: (snapshot: RuntimeStateSnapshot) => void) => {
     const handler = (_event: any, snapshot: RuntimeStateSnapshot) => callback(snapshot);

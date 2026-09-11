@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Workspace, WorkspaceInput, RuntimeStateSnapshot } from '../../shared/types';
 import { WorkspaceList } from './components/WorkspaceList';
 import { WorkspaceEditorModal } from './components/WorkspaceEditorModal';
+import { ProviderSettingsModal } from './components/ProviderSettingsModal';
 import { Button } from './components/Button';
-import { Plus, Shield, Layers, Power, RefreshCw } from 'lucide-react';
+import { Plus, Shield, Layers, Power, RefreshCw, Cpu } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
   const [runtimeState, setRuntimeState] = useState<RuntimeStateSnapshot | null>(null);
 
@@ -110,6 +112,15 @@ export const App: React.FC = () => {
           )}
 
           <Button
+            variant="secondary"
+            size="sm"
+            icon={Cpu}
+            onClick={() => setIsProviderModalOpen(true)}
+          >
+            AI Providers
+          </Button>
+
+          <Button
             variant="primary"
             size="sm"
             icon={Plus}
@@ -168,6 +179,12 @@ export const App: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveWorkspace}
         initialWorkspace={editingWorkspace}
+      />
+
+      {/* AI Provider Settings Modal */}
+      <ProviderSettingsModal
+        isOpen={isProviderModalOpen}
+        onClose={() => setIsProviderModalOpen(false)}
       />
     </div>
   );

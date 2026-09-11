@@ -65,6 +65,42 @@ The Workspace is the primary unit of execution. The product is **not** a chat wi
 4. **Resilient Error Containment**:
    - A microphone device or window probe error dispatches a recoverable `CONTEXT_ERROR` event and does not crash the active workspace runtime.
 
+## Phase 3: LLM Provider Gateway & Runtime
+
+```text
+               ContextPayload (Phase 2)
+                      │
+                      ▼
+               ContextAssembler (Prompt Formulation)
+                      │
+                      ▼
+               Provider Gateway (`src/main/providers/provider-gateway.ts`)
+                      │
+       ┌──────────────┼──────────────┬──────────────┐
+       ▼              ▼              ▼              ▼
+ Google Gemini     OpenAI      Ollama (Local)   Anthropic
+  SSE Stream     SSE Stream      NDJSON Stream  SSE Stream
+       │              │              │              │
+       └──────────────┴──────────────┴──────────────┘
+                      │
+                      ▼ (Tokens & Lifecycle Events)
+               RuntimeEventsBus
+                      │
+                      ▼
+             Desktop Overlay HUD (Live Typing Cursor)
+```
+
+### Provider Subsystem Responsibilities
+1. **Provider Gateway (`src/main/providers/provider-gateway.ts`)**:
+   - Manages connection tests (`healthCheck`) and streaming execution pipelines.
+   - Forwards incremental token deltas over IPC without buffering the full response.
+2. **Provider Adapters (`src/main/providers/adapters/`)**:
+   - Normalized adapters for **Gemini**, **OpenAI**, **Ollama**, and **Anthropic** implementing the common `LlmProvider` contract.
+3. **Secure Credential Store (`src/main/storage/credential-store.ts`)**:
+   - API keys are held exclusively in protected main process memory; never leaked into SQLite plaintext or React renderers.
+4. **Context Assembly (`src/main/providers/context-assembler.ts`)**:
+   - Combines workspace instructions, foreground application state, and recent speech transcripts into clean, structured prompts.
+
 ## Security & IPC Boundaries
 - Renderer processes (`main` and `overlay`) run with `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
 - Renderer communicates with Node.js main process exclusively via typed IPC channels defined in `@shared/ipc`.

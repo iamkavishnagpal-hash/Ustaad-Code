@@ -11,6 +11,8 @@ import { AudioManager } from '../audio/audio-manager';
 import { TranscriptionManager } from '../transcription/transcription-manager';
 import { ContextManager } from '../context/context-manager';
 import { ContextRuntime } from '../context/context-runtime';
+import { ProviderGateway } from '../providers/provider-gateway';
+import { AiProviderId, LlmRequest, LlmResponse } from '../providers/provider-types';
 import { RuntimeSessionRecord, RuntimeStateSnapshot, RuntimeStatus, VerificationReport, Workspace } from '../../shared/types';
 
 export class WorkspaceRuntime {
@@ -32,12 +34,34 @@ export class WorkspaceRuntime {
     private audioManager: AudioManager,
     private transcriptionManager: TranscriptionManager,
     private contextManager: ContextManager,
-    private contextRuntime?: ContextRuntime
+    private contextRuntime?: ContextRuntime,
+    private providerGateway?: ProviderGateway
   ) {
     if (!this.contextRuntime) {
       this.contextRuntime = new ContextRuntime(this.audioManager, this.transcriptionManager);
     }
     this.setupAudioListeners();
+    this.setupProviderListeners();
+  }
+
+  private setupProviderListeners(): void {
+    if (!this.providerGateway) return;
+
+    this.providerGateway.on('llm:started', (data) => {
+      this.eventsBus.notifyLlmStarted(data);
+    });
+
+    this.providerGateway.on('llm:chunk', (data) => {
+      this.eventsBus.notifyLlmChunk(data);
+    });
+
+    this.providerGateway.on('llm:completed', (data) => {
+      this.eventsBus.notifyLlmCompleted(data);
+    });
+
+    this.providerGateway.on('llm:error', (data) => {
+      this.eventsBus.notifyLlmError(data);
+    });
   }
 
   private setupAudioListeners(): void {
@@ -188,6 +212,44 @@ export class WorkspaceRuntime {
 
   public getContextRuntime(): ContextRuntime | undefined {
     return this.contextRuntime;
+  }
+
+  public getProviderGateway(): ProviderGateway | undefined {
+    return this.providerGateway;
+  }
+
+  public async requestAiResponse(userPrompt?: string, providerId?: AiProviderId): Promise<LlmResponse> {
+    if (!this.providerGateway) {
+      throw new Error('AI Provider Gateway is not initialized');
+    }
+
+    if (!this.activeWorkspace || !this.currentSession) {
+      throw new Error('No active workspace session to request AI response for');
+    }
+
+    const contextPayload = this.contextRuntime
+      ? this.contextRuntime.getCurrentPayload()
+      : {
+          workspaceId: this.activeWorkspace.id,
+          sessionId: this.currentSession.id,
+          timestamp: Date.now(),
+          transcript: { text: '', startedAt: Date.now(), updatedAt: Date.now(), segmentCount: 0 },
+          sources: { microphone: false, systemAudio: false, activeWindow: false, screen: false },
+        };
+
+    const targetProvider: AiProviderId =
+      providerId || (this.activeWorkspace.source.provider as any) || 'gemini';
+
+    const request: LlmRequest = {
+      workspaceId: this.activeWorkspace.id,
+      sessionId: this.currentSession.id,
+      providerId: targetProvider,
+      systemInstruction: this.activeWorkspace.description,
+      userPrompt,
+      context: contextPayload,
+    };
+
+    return await this.providerGateway.streamResponse(request, () => {});
   }
 
   public async stop(): Promise<void> {

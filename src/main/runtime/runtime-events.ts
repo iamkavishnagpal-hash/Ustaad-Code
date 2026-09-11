@@ -58,11 +58,47 @@ export class RuntimeEventsBus extends EventEmitter {
     }
   }
 
-  public notifyAudioState(state: any): void {
-    this.emit('audio:changed', state);
+  public notifyAudioState(audioState: any): void {
+    this.emit('audio:changed', audioState);
     for (const win of this.activeWindows) {
       if (!win.isDestroyed()) {
-        win.webContents.send(IPC_CHANNELS.EVENT_AUDIO_STATE_CHANGED, state);
+        win.webContents.send(IPC_CHANNELS.EVENT_AUDIO_STATE_CHANGED, audioState);
+      }
+    }
+  }
+
+  public notifyLlmStarted(data: { providerId: string; model: string }): void {
+    this.emit('llm:started', data);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_LLM_STARTED, data);
+      }
+    }
+  }
+
+  public notifyLlmChunk(data: { token: string; providerId: string }): void {
+    this.emit('llm:chunk', data);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_LLM_CHUNK, data);
+      }
+    }
+  }
+
+  public notifyLlmCompleted(response: any): void {
+    this.emit('llm:completed', response);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_LLM_COMPLETED, response);
+      }
+    }
+  }
+
+  public notifyLlmError(errorData: { providerId: string; error: string }): void {
+    this.emit('llm:error', errorData);
+    for (const win of this.activeWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.EVENT_LLM_ERROR, errorData);
       }
     }
   }

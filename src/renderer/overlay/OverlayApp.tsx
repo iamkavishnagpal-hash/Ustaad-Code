@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { RuntimeStateSnapshot, VerificationReport } from '../../shared/types';
-import { Shield, Power, CheckCircle, AlertTriangle, Layers, Mic, MicOff, VolumeX, MessageSquare } from 'lucide-react';
+import { Shield, Power, CheckCircle, AlertTriangle, Layers, Mic, MicOff, VolumeX, MessageSquare, Sparkles, Loader2 } from 'lucide-react';
 
 export const OverlayApp: React.FC = () => {
   const [runtimeState, setRuntimeState] = useState<RuntimeStateSnapshot | null>(null);
   const [verification, setVerification] = useState<VerificationReport | null>(null);
   const [liveTranscript, setLiveTranscript] = useState<string>('');
   const [audioLoading, setAudioLoading] = useState(false);
+  const [aiStreaming, setAiStreaming] = useState(false);
+  const [aiResponse, setAiResponse] = useState<string>('');
 
   const api = window.overlayApi;
 
@@ -39,12 +41,46 @@ export const OverlayApp: React.FC = () => {
       setLiveTranscript(segment.text);
     });
 
+    const unsubLlmStart = api.onLlmStarted?.(() => {
+      setAiStreaming(true);
+      setAiResponse('');
+    });
+
+    const unsubLlmChunk = api.onLlmChunk?.(({ token }) => {
+      setAiResponse((prev) => prev + token);
+    });
+
+    const unsubLlmComplete = api.onLlmCompleted?.(() => {
+      setAiStreaming(false);
+    });
+
+    const unsubLlmError = api.onLlmError?.(({ error }) => {
+      setAiStreaming(false);
+      setAiResponse(`[AI Error] ${error}`);
+    });
+
     return () => {
       unsubState();
       unsubVerify();
       if (unsubTranscript) unsubTranscript();
+      if (unsubLlmStart) unsubLlmStart();
+      if (unsubLlmChunk) unsubLlmChunk();
+      if (unsubLlmComplete) unsubLlmComplete();
+      if (unsubLlmError) unsubLlmError();
     };
   }, []);
+
+  const handleAskAi = async () => {
+    if (!api || aiStreaming) return;
+    setAiStreaming(true);
+    setAiResponse('');
+    try {
+      await api.requestAi();
+    } catch (err: any) {
+      setAiStreaming(false);
+      setAiResponse(`[Request Failed] ${err.message}`);
+    }
+  };
 
   const handleStop = async () => {
     if (!api) return;
@@ -124,7 +160,7 @@ export const OverlayApp: React.FC = () => {
 
   return (
     <div className="w-full h-full p-2">
-      <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-surfaceBorder rounded-xl shadow-2xl p-3 flex flex-col justify-between text-textPrimary h-[160px]">
+      <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-surfaceBorder rounded-xl shadow-2xl p-3 flex flex-col justify-between text-textPrimary min-h-[160px] max-h-[220px]">
         {/* Top bar with drag handle and close control */}
         <div className="flex items-center justify-between drag-region cursor-move">
           <div className="flex items-center gap-2">
@@ -138,6 +174,15 @@ export const OverlayApp: React.FC = () => {
 
           <div className="flex items-center gap-1.5 no-drag">
             {getStatusBadge()}
+            <button
+              onClick={handleAskAi}
+              disabled={aiStreaming || status !== 'READY' && status !== 'CONTEXT_READY' && status !== 'CAPTURING'}
+              className="p-1 rounded text-xs transition-colors flex items-center gap-1 px-2 border bg-indigo-500/15 border-indigo-500/40 text-indigo-400 hover:bg-indigo-500/25 disabled:opacity-50"
+              title="Request AI Context Synthesis (Phase 3)"
+            >
+              {aiStreaming ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+              <span className="font-semibold text-[10px]">{aiStreaming ? 'Thinking...' : 'Ask AI'}</span>
+            </button>
             <button
               onClick={handleToggleListen}
               disabled={audioLoading}
@@ -172,13 +217,28 @@ export const OverlayApp: React.FC = () => {
           </div>
         </div>
 
+        {/* AI Streaming Response Viewport (when active or recently answered) */}
+        {aiResponse && (
+          <div className="my-1 p-2 bg-[#121829] rounded-lg border border-indigo-500/30 text-xs max-h-[70px] overflow-y-auto font-mono text-indigo-200">
+            <div className="flex items-center gap-1 text-[10px] text-indigo-400 font-semibold mb-1">
+              <Sparkles size={11} /> AI RESPONSE:
+            </div>
+            <p className="text-[11px] leading-relaxed whitespace-pre-wrap">
+              {aiResponse}
+              {aiStreaming && <span className="inline-block w-1.5 h-3 bg-indigo-400 animate-pulse ml-0.5" />}
+            </p>
+          </div>
+        )}
+
         {/* Rolling Transcript Context Preview */}
-        <div className="my-1 px-2.5 py-1.5 bg-[#0E1422] rounded-lg border border-surfaceBorder/60 flex items-center gap-2 text-xs min-h-[34px]">
-          <MessageSquare size={13} className="text-accent flex-shrink-0" />
-          <p className="text-textSecondary text-[11px] truncate italic">
-            {liveTranscript ? `"${liveTranscript}"` : 'Listening idle. Audio stream will transcribe in real-time...'}
-          </p>
-        </div>
+        {!aiResponse && (
+          <div className="my-1 px-2.5 py-1.5 bg-[#0E1422] rounded-lg border border-surfaceBorder/60 flex items-center gap-2 text-xs min-h-[34px]">
+            <MessageSquare size={13} className="text-accent flex-shrink-0" />
+            <p className="text-textSecondary text-[11px] truncate italic">
+              {liveTranscript ? `"${liveTranscript}"` : 'Listening idle. Audio stream will transcribe in real-time...'}
+            </p>
+          </div>
+        )}
 
         {/* Bottom Sensor Telemetry & Privacy */}
         <div className="flex items-center justify-between text-[11px] text-textMuted border-t border-surfaceBorder/40 pt-1">

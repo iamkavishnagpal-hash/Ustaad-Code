@@ -13,6 +13,9 @@ import { WorkspaceRuntime } from './runtime/workspace-runtime';
 import { AudioManager } from './audio/audio-manager';
 import { TranscriptionManager } from './transcription/transcription-manager';
 import { ContextManager } from './context/context-manager';
+import { ProviderRegistry } from './providers/provider-registry';
+import { CredentialStore } from './storage/credential-store';
+import { ProviderGateway } from './providers/provider-gateway';
 import { registerIpcHandlers } from './ipc/handlers';
 
 // Enforce single instance lock on Windows
@@ -45,6 +48,11 @@ async function bootstrap(): Promise<void> {
   const transcriptionManager = new TranscriptionManager();
   const contextManager = new ContextManager();
 
+  // Phase 3 AI Provider Gateway
+  const providerRegistry = new ProviderRegistry();
+  const credentialStore = new CredentialStore();
+  const providerGateway = new ProviderGateway(providerRegistry, credentialStore);
+
   // 3. Initialize Runtime
   runtime = new WorkspaceRuntime(
     workspaceService,
@@ -57,7 +65,9 @@ async function bootstrap(): Promise<void> {
     eventsBus,
     audioManager,
     transcriptionManager,
-    contextManager
+    contextManager,
+    undefined,
+    providerGateway
   );
 
   // 4. Register IPC endpoints

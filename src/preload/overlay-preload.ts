@@ -21,6 +21,11 @@ export const overlayApi = {
     return ipcRenderer.invoke(IPC_CHANNELS.AUDIO_TOGGLE_MUTE);
   },
 
+  // AI Response (Phase 3)
+  requestAi: (prompt?: string, providerId?: string): Promise<any> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LLM_REQUEST_AI, { prompt, providerId });
+  },
+
   // Event Subscriptions
   onStateChanged: (callback: (snapshot: RuntimeStateSnapshot) => void) => {
     const handler = (_event: any, snapshot: RuntimeStateSnapshot) => callback(snapshot);
@@ -37,6 +42,27 @@ export const overlayApi = {
     ipcRenderer.on(IPC_CHANNELS.EVENT_TRANSCRIPT_CHUNK, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_TRANSCRIPT_CHUNK, handler);
   },
+  onLlmStarted: (callback: (data: any) => void) => {
+    const handler = (_event: any, data: any) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_LLM_STARTED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_LLM_STARTED, handler);
+  },
+  onLlmChunk: (callback: (data: { token: string; providerId: string }) => void) => {
+    const handler = (_event: any, data: any) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_LLM_CHUNK, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_LLM_CHUNK, handler);
+  },
+  onLlmCompleted: (callback: (response: any) => void) => {
+    const handler = (_event: any, data: any) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_LLM_COMPLETED, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_LLM_COMPLETED, handler);
+  },
+  onLlmError: (callback: (errorData: { providerId: string; error: string }) => void) => {
+    const handler = (_event: any, data: any) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.EVENT_LLM_ERROR, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENT_LLM_ERROR, handler);
+  },
 };
 
 contextBridge.exposeInMainWorld('overlayApi', overlayApi);
+

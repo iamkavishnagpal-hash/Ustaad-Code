@@ -89,6 +89,38 @@ export function registerIpcHandlers(
     return runtime.getSnapshot();
   });
 
+  // 5. AI & LLM Provider Gateway (Phase 3)
+  ipcMain.handle(IPC_CHANNELS.LLM_LIST_PROVIDERS, async () => {
+    const gateway = runtime.getProviderGateway();
+    return gateway ? gateway.getRegistry().list() : [];
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LLM_GET_CONFIG, async (_event, providerId: any) => {
+    const gateway = runtime.getProviderGateway();
+    return gateway ? gateway.getCredentialStore().getSanitizedConfig(providerId) : null;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LLM_SAVE_CONFIG, async (_event, config: any) => {
+    const gateway = runtime.getProviderGateway();
+    if (gateway) {
+      gateway.getCredentialStore().setConfig(config);
+      return { success: true };
+    }
+    return { success: false, error: 'Gateway not available' };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LLM_TEST_CONNECTION, async (_event, { providerId, config }: any) => {
+    const gateway = runtime.getProviderGateway();
+    if (!gateway) {
+      return { providerId, available: false, model: 'unknown', error: 'Gateway uninitialized' };
+    }
+    return await gateway.testConnection(providerId, config);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.LLM_REQUEST_AI, async (_event, { prompt, providerId }: any = {}) => {
+    return await runtime.requestAiResponse(prompt, providerId);
+  });
+
   // 4. Window control
   ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
